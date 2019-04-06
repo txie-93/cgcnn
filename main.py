@@ -1,23 +1,22 @@
 import argparse
-import sys
 import os
 import shutil
+import sys
 import time
 import warnings
 from random import sample
 
 import numpy as np
-from sklearn import metrics
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from sklearn import metrics
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import MultiStepLR
 
-from cgcnn.model import CrystalGraphConvNet
-from cgcnn.data import collate_pool, get_train_val_test_loader
 from cgcnn.data import CIFData
-
+from cgcnn.data import collate_pool, get_train_val_test_loader
+from cgcnn.model import CrystalGraphConvNet
 
 parser = argparse.ArgumentParser(description='Crystal Graph Convolutional Neural Networks')
 parser.add_argument('data_options', metavar='OPTIONS', nargs='+',
@@ -50,13 +49,13 @@ parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('--train-size', default=None, type=int, metavar='N',
+parser.add_argument('--train-ratio', default=None, type=float, metavar='N',
                     help='number of training data to be loaded (default none)')
-parser.add_argument('--val-size', default=1000, type=int, metavar='N',
-                    help='number of validation data to be loaded (default '
-                    '1000)')
-parser.add_argument('--test-size', default=1000, type=int, metavar='N',
-                    help='number of test data to be loaded (default 1000)')
+parser.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
+                    help='percentage of validation data to be loaded (default '
+                         '0.1)')
+parser.add_argument('--test-ratio', default=0.1, type=float, metavar='N',
+                    help='percentage of test data to be loaded (default 0.1)')
 parser.add_argument('--optim', default='SGD', type=str, metavar='SGD',
                     help='choose an optimizer, SGD or Adam, (default: SGD)')
 parser.add_argument('--atom-fea-len', default=64, type=int, metavar='N',
@@ -86,8 +85,8 @@ def main():
     collate_fn = collate_pool
     train_loader, val_loader, test_loader = get_train_val_test_loader(
         dataset=dataset, collate_fn=collate_fn, batch_size=args.batch_size,
-        train_size=args.train_size, num_workers=args.workers,
-        val_size=args.val_size, test_size=args.test_size,
+        train_ratio=args.train_ratio, num_workers=args.workers,
+        val_ratio=args.val_size, test_ratio=args.test_size,
         pin_memory=args.cuda, return_test=True)
 
     # obtain target value normalizer
