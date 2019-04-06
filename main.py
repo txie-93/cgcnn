@@ -205,27 +205,27 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
     model.train()
 
     end = time.time()
-    for i, (input, target, _) in enumerate(train_loader):
+    for i, (_input, target, _) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
         if args.cuda:
-            input_var = (Variable(input[0].cuda(async=True)),
-                         Variable(input[1].cuda(async=True)),
-                         input[2].cuda(async=True),
-                         [crys_idx.cuda(async=True) for crys_idx in input[3]])
+            input_var = (Variable(_input[0].cuda(non_blocking=True)),
+                         Variable(_input[1].cuda(non_blocking=True)),
+                         _input[2].cuda(non_blocking=True),
+                         [crys_idx.cuda(non_blocking=True) for crys_idx in _input[3]])
         else:
-            input_var = (Variable(input[0]),
-                         Variable(input[1]),
-                         input[2],
-                         input[3])
+            input_var = (Variable(_input[0]),
+                         Variable(_input[1]),
+                         _input[2],
+                         _input[3])
         # normalize target
         if args.task == 'regression':
             target_normed = normalizer.norm(target)
         else:
             target_normed = target.view(-1).long()
         if args.cuda:
-            target_var = Variable(target_normed.cuda(async=True))
+            target_var = Variable(target_normed.cuda(non_blocking=True))
         else:
             target_var = Variable(target_normed)
 
@@ -306,10 +306,10 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     end = time.time()
     for i, (input, target, batch_cif_ids) in enumerate(val_loader):
         if args.cuda:
-            input_var = (Variable(input[0].cuda(async=True), volatile=True),
-                         Variable(input[1].cuda(async=True), volatile=True),
-                         input[2].cuda(async=True),
-                         [crys_idx.cuda(async=True) for crys_idx in input[3]])
+            input_var = (Variable(input[0].cuda(non_blocking=True), volatile=True),
+                         Variable(input[1].cuda(non_blocking=True), volatile=True),
+                         input[2].cuda(non_blocking=True),
+                         [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
         else:
             input_var = (Variable(input[0], volatile=True),
                          Variable(input[1], volatile=True),
@@ -320,7 +320,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
         else:
             target_normed = target.view(-1).long()
         if args.cuda:
-            target_var = Variable(target_normed.cuda(async=True),
+            target_var = Variable(target_normed.cuda(non_blocking=True),
                                   volatile=True)
         else:
             target_var = Variable(target_normed, volatile=True)
