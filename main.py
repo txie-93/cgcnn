@@ -86,7 +86,7 @@ def main():
     train_loader, val_loader, test_loader = get_train_val_test_loader(
         dataset=dataset, collate_fn=collate_fn, batch_size=args.batch_size,
         train_ratio=args.train_ratio, num_workers=args.workers,
-        val_ratio=args.val_size, test_ratio=args.test_size,
+        val_ratio=args.val_ratio, test_ratio=args.test_ratio,
         pin_memory=args.cuda, return_test=True)
 
     # obtain target value normalizer
@@ -235,7 +235,7 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
         # measure accuracy and record loss
         if args.task == 'regression':
             mae_error = mae(normalizer.denorm(output.data.cpu()), target)
-            losses.update(loss.data.cpu()[0], target.size(0))
+            losses.update(loss.data.cpu(), target.size(0))
             mae_errors.update(mae_error, target.size(0))
         else:
             accuracy, precision, recall, fscore, auc_score =\
@@ -331,7 +331,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
         # measure accuracy and record loss
         if args.task == 'regression':
             mae_error = mae(normalizer.denorm(output.data.cpu()), target)
-            losses.update(loss.data.cpu()[0], target.size(0))
+            losses.update(loss.data.cpu(), target.size(0))
             mae_errors.update(mae_error, target.size(0))
             if test:
                 test_pred = normalizer.denorm(output.data.cpu())

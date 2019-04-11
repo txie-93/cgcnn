@@ -18,7 +18,7 @@ from torch.utils.data.sampler import SubsetRandomSampler
 def get_train_val_test_loader(dataset, collate_fn=default_collate,
                               batch_size=64, train_ratio=None,
                               val_ratio=0.1, test_ratio=0.1, return_test=False,
-                              num_workers=1, pin_memory=False):
+                              num_workers=1, pin_memory=False, **kwargs):
     """
     Utility function for dividing a dataset to train, val, test datasets.
 
@@ -52,11 +52,16 @@ def get_train_val_test_loader(dataset, collate_fn=default_collate,
     total_size = len(dataset)
     if train_ratio is None:
         assert val_ratio + test_ratio < 1
+        train_ratio = 1 - val_ratio - test_ratio
         print('[Warning] train_ratio is None, using all training data.')
     else:
         assert train_ratio + val_ratio + test_ratio <= 1
     indices = list(range(total_size))
-    train_sampler = SubsetRandomSampler(indices[:int(train_ratio * total_size)])
+    if 'train_size' in kwargs:
+        train_size = kwargs['train_size']
+    else:
+        train_size = int(train_ratio * total_size)
+    train_sampler = SubsetRandomSampler(indices[:train_size])
     val_sampler = SubsetRandomSampler(
         indices[-int((val_ratio + test_ratio) * total_size):-int(test_ratio * total_size)])
     if return_test:
