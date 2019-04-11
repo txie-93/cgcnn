@@ -56,6 +56,13 @@ parser.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
                          '0.1)')
 parser.add_argument('--test-ratio', default=0.1, type=float, metavar='N',
                     help='percentage of test data to be loaded (default 0.1)')
+parser.add_argument('--train-size', default=None, type=int, metavar='N',
+                    help='number of training data to be loaded (default none) Note that \'size\' overrides \'ratio\'')
+parser.add_argument('--val-size', default=None, type=int, metavar='N',
+                    help='number of validation data to be loaded (default '
+                         '1000)')
+parser.add_argument('--test-size', default=None, type=int, metavar='N',
+                    help='number of test data to be loaded (default 1000)')
 parser.add_argument('--optim', default='SGD', type=str, metavar='SGD',
                     help='choose an optimizer, SGD or Adam, (default: SGD)')
 parser.add_argument('--atom-fea-len', default=64, type=int, metavar='N',
@@ -84,10 +91,18 @@ def main():
     dataset = CIFData(*args.data_options)
     collate_fn = collate_pool
     train_loader, val_loader, test_loader = get_train_val_test_loader(
-        dataset=dataset, collate_fn=collate_fn, batch_size=args.batch_size,
-        train_ratio=args.train_ratio, num_workers=args.workers,
-        val_ratio=args.val_ratio, test_ratio=args.test_ratio,
-        pin_memory=args.cuda, return_test=True)
+        dataset=dataset,
+        collate_fn=collate_fn,
+        batch_size=args.batch_size,
+        train_ratio=args.train_ratio,
+        num_workers=args.workers,
+        val_ratio=args.val_ratio,
+        test_ratio=args.test_ratio,
+        pin_memory=args.cuda,
+        train_size=args.train_size,
+        val_size=args.val_size,
+        test_size=args.test_size,
+        return_test=True)
 
     # obtain target value normalizer
     if args.task == 'classification':
