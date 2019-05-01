@@ -21,10 +21,10 @@ from cgcnn.model import CrystalGraphConvNet
 parser = argparse.ArgumentParser(description='Crystal Graph Convolutional Neural Networks')
 parser.add_argument('data_options', metavar='OPTIONS', nargs='+',
                     help='dataset options, started with the path to root dir, '
-                    'then other options')
+                         'then other options')
 parser.add_argument('--task', choices=['regression', 'classification'],
-                    default='regression', help='complete a regression or '
-                    'classification task (default: regression)')
+                    default='classification', help='complete a regression or '
+                                                   'classification task (default: regression)')
 parser.add_argument('--disable-cuda', action='store_true',
                     help='Disable CUDA')
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
@@ -37,10 +37,10 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
                     metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate (default: '
-                    '0.01)')
+                                       '0.01)')
 parser.add_argument('--lr-milestones', default=[100], nargs='+', type=int,
                     metavar='N', help='milestones for scheduler (default: '
-                    '[100])')
+                                      '[100])')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=0, type=float,
@@ -129,7 +129,7 @@ def main():
                                 h_fea_len=args.h_fea_len,
                                 n_h=args.n_h,
                                 classification=True if args.task ==
-                                'classification' else False)
+                                                       'classification' else False)
     if args.cuda:
         model.cuda()
 
@@ -253,9 +253,9 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
             losses.update(loss.data.cpu(), target.size(0))
             mae_errors.update(mae_error, target.size(0))
         else:
-            accuracy, precision, recall, fscore, auc_score =\
+            accuracy, precision, recall, fscore, auc_score = \
                 class_eval(output.data.cpu(), target)
-            losses.update(loss.data.cpu()[0], target.size(0))
+            losses.update(loss.data.cpu().item(), target.size(0))
             accuracies.update(accuracy, target.size(0))
             precisions.update(precision, target.size(0))
             recalls.update(recall, target.size(0))
@@ -278,9 +278,9 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                       'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                       epoch, i, len(train_loader), batch_time=batch_time,
-                       data_time=data_time, loss=losses, mae_errors=mae_errors)
-                      )
+                    epoch, i, len(train_loader), batch_time=batch_time,
+                    data_time=data_time, loss=losses, mae_errors=mae_errors)
+                )
             else:
                 print('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -291,11 +291,11 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                       epoch, i, len(train_loader), batch_time=batch_time,
-                       data_time=data_time, loss=losses, accu=accuracies,
-                       prec=precisions, recall=recalls, f1=fscores,
-                       auc=auc_scores)
-                      )
+                    epoch, i, len(train_loader), batch_time=batch_time,
+                    data_time=data_time, loss=losses, accu=accuracies,
+                    prec=precisions, recall=recalls, f1=fscores,
+                    auc=auc_scores)
+                )
 
 
 def validate(val_loader, model, criterion, normalizer, test=False):
@@ -320,24 +320,27 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     end = time.time()
     for i, (input, target, batch_cif_ids) in enumerate(val_loader):
         if args.cuda:
-            input_var = (Variable(input[0].cuda(non_blocking=True), volatile=True),
-                         Variable(input[1].cuda(non_blocking=True), volatile=True),
-                         input[2].cuda(non_blocking=True),
-                         [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
+            with torch.no_grad():
+                input_var = (Variable(input[0].cuda(non_blocking=True)),
+                             Variable(input[1].cuda(non_blocking=True)),
+                             input[2].cuda(non_blocking=True),
+                             [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
         else:
-            input_var = (Variable(input[0], volatile=True),
-                         Variable(input[1], volatile=True),
-                         input[2],
-                         input[3])
+            with torch.no_grad():
+                input_var = (Variable(input[0]),
+                             Variable(input[1]),
+                             input[2],
+                             input[3])
         if args.task == 'regression':
             target_normed = normalizer.norm(target)
         else:
             target_normed = target.view(-1).long()
         if args.cuda:
-            target_var = Variable(target_normed.cuda(non_blocking=True),
-                                  volatile=True)
+            with torch.no_grad():
+                target_var = Variable(target_normed.cuda(non_blocking=True))
         else:
-            target_var = Variable(target_normed, volatile=True)
+            with torch.no_grad():
+                target_var = Variable(target_normed)
 
         # compute output
         output = model(*input_var)
@@ -346,7 +349,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
         # measure accuracy and record loss
         if args.task == 'regression':
             mae_error = mae(normalizer.denorm(output.data.cpu()), target)
-            losses.update(loss.data.cpu(), target.size(0))
+            losses.update(loss.data.cpu().item(), target.size(0))
             mae_errors.update(mae_error, target.size(0))
             if test:
                 test_pred = normalizer.denorm(output.data.cpu())
@@ -355,9 +358,9 @@ def validate(val_loader, model, criterion, normalizer, test=False):
                 test_targets += test_target.view(-1).tolist()
                 test_cif_ids += batch_cif_ids
         else:
-            accuracy, precision, recall, fscore, auc_score =\
+            accuracy, precision, recall, fscore, auc_score = \
                 class_eval(output.data.cpu(), target)
-            losses.update(loss.data.cpu()[0], target.size(0))
+            losses.update(loss.data.cpu().item(), target.size(0))
             accuracies.update(accuracy, target.size(0))
             precisions.update(precision, target.size(0))
             recalls.update(recall, target.size(0))
@@ -381,8 +384,8 @@ def validate(val_loader, model, criterion, normalizer, test=False):
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                       i, len(val_loader), batch_time=batch_time, loss=losses,
-                       mae_errors=mae_errors))
+                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    mae_errors=mae_errors))
             else:
                 print('Test: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -392,9 +395,9 @@ def validate(val_loader, model, criterion, normalizer, test=False):
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                       i, len(val_loader), batch_time=batch_time, loss=losses,
-                       accu=accuracies, prec=precisions, recall=recalls,
-                       f1=fscores, auc=auc_scores))
+                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    accu=accuracies, prec=precisions, recall=recalls,
+                    f1=fscores, auc=auc_scores))
 
     if test:
         star_label = '**'
@@ -418,6 +421,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
 
 class Normalizer(object):
     """Normalize a Tensor and restore it later. """
+
     def __init__(self, tensor):
         """tensor is taken as a sample to calculate the mean and std"""
         self.mean = torch.mean(tensor)
@@ -456,6 +460,8 @@ def class_eval(prediction, target):
     target = target.numpy()
     pred_label = np.argmax(prediction, axis=1)
     target_label = np.squeeze(target)
+    if not target_label.shape:
+        target_label = np.asarray([target_label])
     if prediction.shape[1] == 2:
         precision, recall, fscore, _ = metrics.precision_recall_fscore_support(
             target_label, pred_label, average='binary')
@@ -468,6 +474,7 @@ def class_eval(prediction, target):
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 

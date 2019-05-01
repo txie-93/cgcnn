@@ -1,7 +1,6 @@
 from __future__ import print_function, division
 
 import torch
-
 import torch.nn as nn
 
 
@@ -120,7 +119,7 @@ class CrystalGraphConvNet(nn.Module):
         else:
             self.fc_out = nn.Linear(h_fea_len, 1)
         if self.classification:
-            self.logsoftmax = nn.LogSoftmax()
+            self.logsoftmax = nn.LogSoftmax(dim=1)
             self.dropout = nn.Dropout()
 
     def forward(self, atom_fea, nbr_fea, nbr_fea_idx, crystal_atom_idx):
