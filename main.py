@@ -23,7 +23,7 @@ parser.add_argument('data_options', metavar='OPTIONS', nargs='+',
                     help='dataset options, started with the path to root dir, '
                          'then other options')
 parser.add_argument('--task', choices=['regression', 'classification'],
-                    default='classification', help='complete a regression or '
+                    default='regression', help='complete a regression or '
                                                    'classification task (default: regression)')
 parser.add_argument('--disable-cuda', action='store_true',
                     help='Disable CUDA')
@@ -49,20 +49,24 @@ parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('--train-ratio', default=None, type=float, metavar='N',
+train_group = parser.add_mutually_exclusive_group()
+train_group.add_argument('--train-ratio', default=None, type=float, metavar='N',
                     help='number of training data to be loaded (default none)')
-parser.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
+train_group.add_argument('--train-size', default=None, type=int, metavar='N',
+                         help='number of training data to be loaded (default none)')
+valid_group = parser.add_mutually_exclusive_group()
+valid_group.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
                     help='percentage of validation data to be loaded (default '
                          '0.1)')
-parser.add_argument('--test-ratio', default=0.1, type=float, metavar='N',
+valid_group.add_argument('--val-size', default=None, type=int, metavar='N',
+                         help='number of validation data to be loaded (default '
+                              '1000)')
+test_group = parser.add_mutually_exclusive_group()
+test_group.add_argument('--test-ratio', default=0.1, type=float, metavar='N',
                     help='percentage of test data to be loaded (default 0.1)')
-parser.add_argument('--train-size', default=None, type=int, metavar='N',
-                    help='number of training data to be loaded (default none) Note that \'size\' overrides \'ratio\'')
-parser.add_argument('--val-size', default=None, type=int, metavar='N',
-                    help='number of validation data to be loaded (default '
-                         '1000)')
-parser.add_argument('--test-size', default=None, type=int, metavar='N',
-                    help='number of test data to be loaded (default 1000)')
+test_group.add_argument('--test-size', default=None, type=int, metavar='N',
+                        help='number of test data to be loaded (default 1000)')
+
 parser.add_argument('--optim', default='SGD', type=str, metavar='SGD',
                     help='choose an optimizer, SGD or Adam, (default: SGD)')
 parser.add_argument('--atom-fea-len', default=64, type=int, metavar='N',
@@ -219,20 +223,20 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
     model.train()
 
     end = time.time()
-    for i, (_input, target, _) in enumerate(train_loader):
+    for i, (input, target, _) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
         if args.cuda:
-            input_var = (Variable(_input[0].cuda(non_blocking=True)),
-                         Variable(_input[1].cuda(non_blocking=True)),
-                         _input[2].cuda(non_blocking=True),
-                         [crys_idx.cuda(non_blocking=True) for crys_idx in _input[3]])
+            input_var = (Variable(input[0].cuda(non_blocking=True)),
+                         Variable(input[1].cuda(non_blocking=True)),
+                         input[2].cuda(non_blocking=True),
+                         [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
         else:
-            input_var = (Variable(_input[0]),
-                         Variable(_input[1]),
-                         _input[2],
-                         _input[3])
+            input_var = (Variable(input[0]),
+                         Variable(input[1]),
+                         input[2],
+                         input[3])
         # normalize target
         if args.task == 'regression':
             target_normed = normalizer.norm(target)
