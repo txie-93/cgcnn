@@ -129,10 +129,14 @@ Then, in directory `cgcnn`, you can train a CGCNN model for your customized data
 python main.py root_dir
 ```
 
-You can set the number of training, validation, and test data with labels `--train-size`, `--val-size`, and `--test-size`. For instance, `data/sample-regression` has 10 data points in total. You can train a model by:
+You can set the number of training, validation, and test data with labels `--train-size`, `--val-size`, and `--test-size`. Alternatively, you may use the flags `--train-ratio`, `--val-ratio`, `--test-ratio` instead. Note that the ratio flags cannot be used with the size flags simultaneously. For instance, `data/sample-regression` has 10 data points in total. You can train a model by:
 
 ```bash
 python main.py --train-size 6 --val-size 2 --test-size 2 data/sample-regression
+```
+or alternatively
+```bash
+python main.py --train-ratio 0.6 --val-ratio 0.2 --test-ratio 0.2 data/sample-regression
 ```
 
 You can also train a classification model with label `--task classification`. For instance, you can use `data/sample-classification` by:
