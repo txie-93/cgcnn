@@ -55,10 +55,10 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 
 ```bash
 conda upgrade conda
-conda create -n cgcnn python=3.6 scikit-learn pytorch=0.3.1 torchvision pymatgen -c pytorch -c matsci
+conda create -n cgcnn python=3.7 scikit-learn pytorch=1.0.0 torchvision pymatgen -c pytorch -c matsci
 ```
 
-*Note: since PyTorch introduced some breaking changes in v0.4.0, this code only works up to v0.3.1*
+*Note: since PyTorch introduced some breaking changes in v0.4.0, this code is not consistent with version below, and is tested on version 1.0.0 only.*
 
 This creates a conda environment for running CGCNN. Before using CGCNN, activate the environment by:
 
