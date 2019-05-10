@@ -1,24 +1,24 @@
 from __future__ import print_function, division
-import os
+
 import csv
-import re
-import json
 import functools
+import json
+import os
 import random
 import warnings
 
-import torch
 import numpy as np
+import torch
+from pymatgen.core.structure import Structure
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
-from pymatgen.core.structure import Structure
 
 
 def get_train_val_test_loader(dataset, collate_fn=default_collate,
-                              batch_size=64, train_size=None,
-                              val_size=1000, test_size=1000, return_test=False,
-                              num_workers=1, pin_memory=False):
+                              batch_size=64, train_ratio=None,
+                              val_ratio=0.1, test_ratio=0.1, return_test=False,
+                              num_workers=1, pin_memory=False, **kwargs):
     """
     Utility function for dividing a dataset to train, val, test datasets.
 
@@ -28,10 +28,11 @@ def get_train_val_test_loader(dataset, collate_fn=default_collate,
     ----------
     dataset: torch.utils.data.Dataset
       The full dataset to be divided.
+    collate_fn: torch.utils.data.DataLoader
     batch_size: int
-    train_size: int
-    val_size: int
-    test_size: int
+    train_ratio: float
+    val_ratio: float
+    test_ratio: float
     return_test: bool
       Whether to return the test dataset loader. If False, the last test_size
       data will be hidden.
@@ -49,15 +50,28 @@ def get_train_val_test_loader(dataset, collate_fn=default_collate,
         return_test=True.
     """
     total_size = len(dataset)
-    if train_size is None:
-        assert val_size + test_size < total_size
-        print('[Warning] train_size is None, using all training data.')
+    if train_ratio is None:
+        assert val_ratio + test_ratio < 1
+        train_ratio = 1 - val_ratio - test_ratio
+        print('[Warning] train_ratio is None, using all training data.')
     else:
-        assert train_size + val_size + test_size <= total_size
+        assert train_ratio + val_ratio + test_ratio <= 1
     indices = list(range(total_size))
+    if kwargs['train_size']:
+        train_size = kwargs['train_size']
+    else:
+        train_size = int(train_ratio * total_size)
+    if kwargs['test_size']:
+        test_size = kwargs['test_size']
+    else:
+        test_size = int(test_ratio * total_size)
+    if kwargs['val_size']:
+        valid_size = kwargs['val_size']
+    else:
+        valid_size = int(val_ratio * total_size)
     train_sampler = SubsetRandomSampler(indices[:train_size])
     val_sampler = SubsetRandomSampler(
-                    indices[-(val_size+test_size):-test_size])
+        indices[-(valid_size + test_size):-test_size])
     if return_test:
         test_sampler = SubsetRandomSampler(indices[-test_size:])
     train_loader = DataLoader(dataset, batch_size=batch_size,
