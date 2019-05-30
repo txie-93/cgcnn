@@ -2,6 +2,7 @@ from __future__ import print_function, division
 
 import torch
 import torch.nn as nn
+from torch_scatter import scatter_mean, scatter_add
 
 
 class ConvLayer(nn.Module):
@@ -30,8 +31,9 @@ class ConvLayer(nn.Module):
         self.bn1 = nn.BatchNorm1d(2*self.atom_fea_len)
         self.bn2 = nn.BatchNorm1d(self.atom_fea_len)
         self.softplus2 = nn.Softplus()
+        self.pooling = SumPooling()
 
-    def forward(self, atom_in_fea, nbr_fea, nbr_fea_idx):
+    def forward(self, atom_in_fea, nbr_fea, self_fea_idx, nbr_fea_idx):
         """
         Forward pass
 
@@ -55,22 +57,26 @@ class ConvLayer(nn.Module):
           Atom hidden features after convolution
 
         """
-        # TODO will there be problems with the index zero padding?
-        N, M = nbr_fea_idx.shape
         # convolution
         atom_nbr_fea = atom_in_fea[nbr_fea_idx, :]
-        total_nbr_fea = torch.cat(
-            [atom_in_fea.unsqueeze(1).expand(N, M, self.atom_fea_len),
-             atom_nbr_fea, nbr_fea], dim=2)
-        total_gated_fea = self.fc_full(total_nbr_fea)
-        total_gated_fea = self.bn1(total_gated_fea.view(
-            -1, self.atom_fea_len*2)).view(N, M, self.atom_fea_len*2)
-        nbr_filter, nbr_core = total_gated_fea.chunk(2, dim=2)
-        nbr_filter = self.sigmoid(nbr_filter)
-        nbr_core = self.softplus1(nbr_core)
-        nbr_sumed = torch.sum(nbr_filter * nbr_core, dim=1)
+        atom_self_fea = atom_in_fea[self_fea_idx,:]
+
+        total_fea = torch.cat([atom_self_fea, atom_nbr_fea, nbr_fea], dim=1)
+
+        total_fea = self.fc_full(total_fea)
+        total_fea = self.bn1(total_fea)
+
+        filter_fea, core_fea = total_fea.chunk(2, dim=1)
+        filter_fea = self.sigmoid(filter_fea)
+        core_fea = self.softplus1(core_fea)
+
+        # take the elementwise product of the filter and core
+        nbr_msg = filter_fea * core_fea
+        nbr_sumed = self.pooling(nbr_msg, self_fea_idx)
+
         nbr_sumed = self.bn2(nbr_sumed)
         out = self.softplus2(atom_in_fea + nbr_sumed)
+
         return out
 
 
@@ -107,6 +113,7 @@ class CrystalGraphConvNet(nn.Module):
         self.convs = nn.ModuleList([ConvLayer(atom_fea_len=atom_fea_len,
                                     nbr_fea_len=nbr_fea_len)
                                     for _ in range(n_conv)])
+        self.pooling = MeanPooling()
         self.conv_to_fc = nn.Linear(atom_fea_len, h_fea_len)
         self.conv_to_fc_softplus = nn.Softplus()
         if n_h > 1:
@@ -122,7 +129,7 @@ class CrystalGraphConvNet(nn.Module):
             self.logsoftmax = nn.LogSoftmax(dim=1)
             self.dropout = nn.Dropout()
 
-    def forward(self, atom_fea, nbr_fea, nbr_fea_idx, crystal_atom_idx):
+    def forward(self, atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx, crystal_atom_idx):
         """
         Forward pass
 
@@ -150,38 +157,56 @@ class CrystalGraphConvNet(nn.Module):
 
         """
         atom_fea = self.embedding(atom_fea)
+        
         for conv_func in self.convs:
-            atom_fea = conv_func(atom_fea, nbr_fea, nbr_fea_idx)
+            atom_fea = conv_func(atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx)
+
         crys_fea = self.pooling(atom_fea, crystal_atom_idx)
+
         crys_fea = self.conv_to_fc(self.conv_to_fc_softplus(crys_fea))
         crys_fea = self.conv_to_fc_softplus(crys_fea)
+
         if self.classification:
             crys_fea = self.dropout(crys_fea)
+
         if hasattr(self, 'fcs') and hasattr(self, 'softpluses'):
             for fc, softplus in zip(self.fcs, self.softpluses):
                 crys_fea = softplus(fc(crys_fea))
+
         out = self.fc_out(crys_fea)
+
         if self.classification:
             out = self.logsoftmax(out)
         return out
 
-    def pooling(self, atom_fea, crystal_atom_idx):
-        """
-        Pooling the atom features to crystal features
+class MeanPooling(nn.Module):
+    """
+    mean pooling
+    """
+    def __init__(self):
+        super(MeanPooling, self).__init__()
 
-        N: Total number of atoms in the batch
-        N0: Total number of crystals in the batch
+    def forward(self, x, index):
+        
+        mean = scatter_mean(x, index, dim=0)
 
-        Parameters
-        ----------
+        return mean
 
-        atom_fea: Variable(torch.Tensor) shape (N, atom_fea_len)
-          Atom feature vectors of the batch
-        crystal_atom_idx: list of torch.LongTensor of length N0
-          Mapping from the crystal idx to atom idx
-        """
-        assert sum([len(idx_map) for idx_map in crystal_atom_idx]) ==\
-            atom_fea.data.shape[0]
-        summed_fea = [torch.mean(atom_fea[idx_map], dim=0, keepdim=True)
-                      for idx_map in crystal_atom_idx]
-        return torch.cat(summed_fea, dim=0)
+    def __repr__(self):
+        return '{}'.format(self.__class__.__name__)
+
+class SumPooling(nn.Module):
+    """
+    mean pooling
+    """
+    def __init__(self):
+        super(SumPooling, self).__init__()
+
+    def forward(self, x, index):
+        
+        mean = scatter_add(x, index, dim=0)
+
+        return mean
+
+    def __repr__(self):
+        return '{}'.format(self.__class__.__name__)

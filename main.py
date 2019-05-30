@@ -201,7 +201,7 @@ def main():
 
     # test best model
     print('---------Evaluate Model on Test Set---------------')
-    best_checkpoint = torch.load('model_best.pth.tar')
+    best_checkpoint = torch.load('output/model_best.pth.tar')
     model.load_state_dict(best_checkpoint['state_dict'])
     validate(test_loader, model, criterion, normalizer, test=True)
 
@@ -229,14 +229,17 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
 
         if args.cuda:
             input_var = (Variable(input[0].cuda(non_blocking=True)),
-                         Variable(input[1].cuda(non_blocking=True)),
-                         input[2].cuda(non_blocking=True),
-                         [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
+                            Variable(input[1].cuda(non_blocking=True)),
+                            input[2].cuda(non_blocking=True),
+                            input[3].cuda(non_blocking=True),
+                            [crys_idx.cuda(non_blocking=True) for crys_idx in input[4]])
         else:
             input_var = (Variable(input[0]),
-                         Variable(input[1]),
-                         input[2],
-                         input[3])
+                            Variable(input[1]),
+                            input[2],
+                            input[3],
+                            input[4])
+
         # normalize target
         if args.task == 'regression':
             target_normed = normalizer.norm(target)
@@ -328,13 +331,16 @@ def validate(val_loader, model, criterion, normalizer, test=False):
                 input_var = (Variable(input[0].cuda(non_blocking=True)),
                              Variable(input[1].cuda(non_blocking=True)),
                              input[2].cuda(non_blocking=True),
-                             [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
+                             input[3].cuda(non_blocking=True),
+                             [crys_idx.cuda(non_blocking=True) for crys_idx in input[4]])
         else:
             with torch.no_grad():
                 input_var = (Variable(input[0]),
                              Variable(input[1]),
                              input[2],
-                             input[3])
+                             input[3],
+                             input[4])
+
         if args.task == 'regression':
             target_normed = normalizer.norm(target)
         else:
@@ -406,7 +412,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     if test:
         star_label = '**'
         import csv
-        with open('test_results.csv', 'w') as f:
+        with open('output/test_results.csv', 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):
@@ -495,10 +501,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def save_checkpoint(state, is_best, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, filename='output/checkpoint.pth.tar'):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'model_best.pth.tar')
+        shutil.copyfile(filename, 'output/model_best.pth.tar')
 
 
 def adjust_learning_rate(optimizer, epoch, k):

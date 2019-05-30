@@ -50,6 +50,7 @@ This package requires:
 - [PyTorch](http://pytorch.org)
 - [scikit-learn](http://scikit-learn.org/stable/)
 - [pymatgen](http://pymatgen.org)
+- [torch-scatter](https://github.com/rusty1s/pytorch_scatter)
 
 If you are new to Python, the easiest way of installing the prerequisites is via [conda](https://conda.io/docs/index.html). After installing [conda](http://conda.pydata.org/), run the following command to create a new [environment](https://conda.io/docs/user-guide/tasks/manage-environments.html) named `cgcnn` and install all prerequisites:
 
@@ -64,6 +65,12 @@ This creates a conda environment for running CGCNN. Before using CGCNN, activate
 
 ```bash
 source activate cgcnn
+```
+
+finally once inside the environment install torch-scatter
+
+```bash
+pip install torch-scatter
 ```
 
 Then, in directory `cgcnn`, you can test if all the prerequisites are installed properly by running:

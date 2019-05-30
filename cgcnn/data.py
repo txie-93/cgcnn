@@ -5,6 +5,7 @@ import functools
 import json
 import os
 import random
+import sys
 import warnings
 
 import numpy as np
@@ -126,25 +127,31 @@ def collate_pool(dataset_list):
       Target value for prediction
     batch_cif_ids: list
     """
-    batch_atom_fea, batch_nbr_fea, batch_nbr_fea_idx = [], [], []
+    batch_atom_fea, batch_nbr_fea = [], []
+    batch_self_fea_idx, batch_nbr_fea_idx = [], []
     crystal_atom_idx, batch_target = [], []
     batch_cif_ids = []
     base_idx = 0
-    for i, ((atom_fea, nbr_fea, nbr_fea_idx), target, cif_id)\
+    for i, ((atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx), target, cif_id)\
             in enumerate(dataset_list):
+
         n_i = atom_fea.shape[0]  # number of atoms for this crystal
+        
         batch_atom_fea.append(atom_fea)
         batch_nbr_fea.append(nbr_fea)
+        batch_self_fea_idx.append(self_fea_idx+base_idx)
         batch_nbr_fea_idx.append(nbr_fea_idx+base_idx)
-        new_idx = torch.LongTensor(np.arange(n_i)+base_idx)
-        crystal_atom_idx.append(new_idx)
+
+        crystal_atom_idx.extend([i]*n_i)
         batch_target.append(target)
         batch_cif_ids.append(cif_id)
         base_idx += n_i
+    
     return (torch.cat(batch_atom_fea, dim=0),
             torch.cat(batch_nbr_fea, dim=0),
+            torch.cat(batch_self_fea_idx, dim=0),
             torch.cat(batch_nbr_fea_idx, dim=0),
-            crystal_atom_idx),\
+            torch.LongTensor(crystal_atom_idx)),\
         torch.stack(batch_target, dim=0),\
         batch_cif_ids
 
@@ -318,33 +325,42 @@ class CIFData(Dataset):
     @functools.lru_cache(maxsize=None)  # Cache loaded structures
     def __getitem__(self, idx):
         cif_id, target = self.id_prop_data[idx]
-        crystal = Structure.from_file(os.path.join(self.root_dir,
-                                                   cif_id+'.cif'))
+        crystal = Structure.from_file(os.path.join(self.root_dir, cif_id+'.cif'))
+        
+        # atom features
         atom_fea = np.vstack([self.ari.get_atom_fea(crystal[i].specie.number)
                               for i in range(len(crystal))])
-        atom_fea = torch.Tensor(atom_fea)
+
+        # neighbours
         all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
         all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
-        nbr_fea_idx, nbr_fea = [], []
-        for nbr in all_nbrs:
+        self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
+
+        for i, nbr in enumerate(all_nbrs):
             if len(nbr) < self.max_num_nbr:
                 warnings.warn('{} not find enough neighbors to build graph. '
                               'If it happens frequently, consider increase '
                               'radius.'.format(cif_id))
-                nbr_fea_idx.append(list(map(lambda x: x[2], nbr)) +
-                                   [0] * (self.max_num_nbr - len(nbr)))
-                nbr_fea.append(list(map(lambda x: x[1], nbr)) +
-                               [self.radius + 1.] * (self.max_num_nbr -
-                                                     len(nbr)))
+                
+                nbr_fea_idx.extend(list(map(lambda x: x[2], nbr)))
+                nbr_fea.extend(list(map(lambda x: x[1], nbr)))
+
             else:
-                nbr_fea_idx.append(list(map(lambda x: x[2],
+                nbr_fea_idx.extend(list(map(lambda x: x[2],
                                             nbr[:self.max_num_nbr])))
-                nbr_fea.append(list(map(lambda x: x[1],
+                nbr_fea.extend(list(map(lambda x: x[1],
                                         nbr[:self.max_num_nbr])))
-        nbr_fea_idx, nbr_fea = np.array(nbr_fea_idx), np.array(nbr_fea)
+
+            self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
+
+        nbr_fea = np.array(nbr_fea)
         nbr_fea = self.gdf.expand(nbr_fea)
+
         atom_fea = torch.Tensor(atom_fea)
         nbr_fea = torch.Tensor(nbr_fea)
+        self_fea_idx = torch.LongTensor(self_fea_idx)
         nbr_fea_idx = torch.LongTensor(nbr_fea_idx)
+
         target = torch.Tensor([float(target)])
-        return (atom_fea, nbr_fea, nbr_fea_idx), target, cif_id
+
+        return (atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx), target, cif_id
