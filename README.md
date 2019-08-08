@@ -58,7 +58,7 @@ conda upgrade conda
 conda create -n cgcnn python=3.7 scikit-learn pytorch=1.0.0 torchvision pymatgen -c pytorch -c matsci
 ```
 
-*Note: since PyTorch introduced some breaking changes in v0.4.0, this code is not consistent with version below, and is tested on version 1.0.0 only.*
+*Note: this code is tested for PyTorch v1.0.0+ and is not compatible with versions below v0.4.0 due to some breaking changes.
 
 This creates a conda environment for running CGCNN. Before using CGCNN, activate the environment by:
 
