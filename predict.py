@@ -1,23 +1,19 @@
 import argparse
-import sys
 import os
 import shutil
+import sys
 import time
-from random import sample
 
 import numpy as np
-from sklearn import metrics
 import torch
 import torch.nn as nn
-import torch.optim as optim
+from sklearn import metrics
 from torch.autograd import Variable
-from torch.optim.lr_scheduler import MultiStepLR
 from torch.utils.data import DataLoader
 
-from cgcnn.model import CrystalGraphConvNet
-from cgcnn.data import collate_pool, get_train_val_test_loader
 from cgcnn.data import CIFData
-
+from cgcnn.data import collate_pool
+from cgcnn.model import CrystalGraphConvNet
 
 parser = argparse.ArgumentParser(description='Crystal gated neural networks')
 parser.add_argument('modelpath', help='path to the trained model.')
@@ -127,25 +123,26 @@ def validate(val_loader, model, criterion, normalizer, test=False):
 
     end = time.time()
     for i, (input, target, batch_cif_ids) in enumerate(val_loader):
-        if args.cuda:
-            input_var = (Variable(input[0].cuda(non_blocking=True), volatile=True),
-                         Variable(input[1].cuda(non_blocking=True), volatile=True),
-                         input[2].cuda(non_blocking=True),
-                         [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
-        else:
-            input_var = (Variable(input[0], volatile=True),
-                         Variable(input[1], volatile=True),
-                         input[2],
-                         input[3])
+        with torch.no_grad():
+            if args.cuda:
+                input_var = (Variable(input[0].cuda(non_blocking=True)),
+                             Variable(input[1].cuda(non_blocking=True)),
+                             input[2].cuda(non_blocking=True),
+                             [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
+            else:
+                input_var = (Variable(input[0]),
+                             Variable(input[1]),
+                             input[2],
+                             input[3])
         if model_args.task == 'regression':
             target_normed = normalizer.norm(target)
         else:
             target_normed = target.view(-1).long()
-        if args.cuda:
-            target_var = Variable(target_normed.cuda(non_blocking=True),
-                                  volatile=True)
-        else:
-            target_var = Variable(target_normed, volatile=True)
+        with torch.no_grad():
+            if args.cuda:
+                target_var = Variable(target_normed.cuda(non_blocking=True))
+            else:
+                target_var = Variable(target_normed)
 
         # compute output
         output = model(*input_var)
@@ -165,7 +162,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
         else:
             accuracy, precision, recall, fscore, auc_score =\
                 class_eval(output.data.cpu(), target)
-            losses.update(loss.data.cpu()[0], target.size(0))
+            losses.update(loss.data.cpu().item(), target.size(0))
             accuracies.update(accuracy, target.size(0))
             precisions.update(precision, target.size(0))
             recalls.update(recall, target.size(0))
