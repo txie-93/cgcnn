@@ -151,7 +151,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
         # measure accuracy and record loss
         if model_args.task == 'regression':
             mae_error = mae(normalizer.denorm(output.data.cpu()), target)
-            losses.update(loss.data.cpu()[0], target.size(0))
+            losses.update(loss.data.cpu().item(), target.size(0))
             mae_errors.update(mae_error, target.size(0))
             if test:
                 test_pred = normalizer.denorm(output.data.cpu())
