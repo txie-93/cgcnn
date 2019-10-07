@@ -19,6 +19,7 @@ The following paper describes the details of the CGCNN framework:
   - [Define a customized dataset](#define-a-customized-dataset)
   - [Train a CGCNN model](#train-a-cgcnn-model)
   - [Predict material properties with a pre-trained CGCNN model](#predict-material-properties-with-a-pre-trained-cgcnn-model)
+- [Data](#data)
 - [Authors](#authors)
 - [License](#license)
 
