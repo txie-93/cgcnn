@@ -182,6 +182,10 @@ After predicting, you will get one file in `cgcnn` directory:
 
 - `test_results.csv`: stores the `ID`, target value, and predicted value for each crystal in test set. Here the target value is just any number that you set while defining the dataset in `id_prop.csv`, which is not important.
 
+## Data
+
+To reproduce our paper, you can download the corresponding datasets following the [instruction](data/material-data).
+
 ## Authors
 
 This software was primarily written by [Tian Xie](http://txie.me) who was advised by [Prof. Jeffrey Grossman](https://dmse.mit.edu/faculty/profile/grossman). 
