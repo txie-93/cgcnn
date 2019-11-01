@@ -56,7 +56,7 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 
 ```bash
 conda upgrade conda
-conda create -n cgcnn python=3.7 scikit-learn pytorch=1.0.0 torchvision pymatgen -c pytorch -c conda-forge
+conda create -n cgcnn python=3 scikit-learn pytorch torchvision pymatgen -c pytorch -c conda-forge
 ```
 
 *Note: this code is tested for PyTorch v1.0.0+ and is not compatible with versions below v0.4.0 due to some breaking changes.
