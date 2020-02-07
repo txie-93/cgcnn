@@ -223,22 +223,19 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
     model.train()
 
     end = time.time()
-    for i, (input, target, _) in enumerate(train_loader):
+    for i, (input_, target, _) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
 
         if args.cuda:
-            input_var = (Variable(input[0].cuda(non_blocking=True)),
-                            Variable(input[1].cuda(non_blocking=True)),
-                            input[2].cuda(non_blocking=True),
-                            input[3].cuda(non_blocking=True),
-                            [crys_idx.cuda(non_blocking=True) for crys_idx in input[4]])
+            input_var = (tensor.to("cuda") for tensor in input_)
         else:
-            input_var = (Variable(input[0]),
-                            Variable(input[1]),
-                            input[2],
-                            input[3],
-                            input[4])
+            # input_var = (Variable(input_[0]),
+            #                 Variable(input_[1]),
+            #                 input_[2],
+            #                 input_[3],
+            #                 input_[4])
+            input_var = input_
 
         # normalize target
         if args.task == 'regression':
@@ -325,21 +322,20 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     model.eval()
 
     end = time.time()
-    for i, (input, target, batch_cif_ids) in enumerate(val_loader):
+    for i, (input_, target, batch_cif_ids) in enumerate(val_loader):
         if args.cuda:
             with torch.no_grad():
-                input_var = (Variable(input[0].cuda(non_blocking=True)),
-                             Variable(input[1].cuda(non_blocking=True)),
-                             input[2].cuda(non_blocking=True),
-                             input[3].cuda(non_blocking=True),
-                             [crys_idx.cuda(non_blocking=True) for crys_idx in input[4]])
+                input_var = (tensor.to("cuda") for tensor in input_)
+
         else:
             with torch.no_grad():
-                input_var = (Variable(input[0]),
-                             Variable(input[1]),
-                             input[2],
-                             input[3],
-                             input[4])
+                # input_var = (Variable(input_[0]),
+                #              Variable(input_[1]),
+                #              input_[2],
+                #              input_[3],
+                #              input_[4])
+                input_var = input_
+
 
         if args.task == 'regression':
             target_normed = normalizer.norm(target)

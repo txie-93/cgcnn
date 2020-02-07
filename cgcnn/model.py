@@ -125,6 +125,7 @@ class CrystalGraphConvNet(nn.Module):
             self.fc_out = nn.Linear(h_fea_len, 2)
         else:
             self.fc_out = nn.Linear(h_fea_len, 1)
+        
         if self.classification:
             self.logsoftmax = nn.LogSoftmax(dim=1)
             self.dropout = nn.Dropout()
@@ -187,7 +188,7 @@ class MeanPooling(nn.Module):
         super(MeanPooling, self).__init__()
 
     def forward(self, x, index):
-        
+                  
         mean = scatter_mean(x, index, dim=0)
 
         return mean
