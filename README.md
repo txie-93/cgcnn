@@ -19,6 +19,7 @@ The following paper describes the details of the CGCNN framework:
   - [Define a customized dataset](#define-a-customized-dataset)
   - [Train a CGCNN model](#train-a-cgcnn-model)
   - [Predict material properties with a pre-trained CGCNN model](#predict-material-properties-with-a-pre-trained-cgcnn-model)
+- [Data](#data)
 - [Authors](#authors)
 - [License](#license)
 
@@ -56,7 +57,7 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 
 ```bash
 conda upgrade conda
-conda create -n cgcnn python=3.7 scikit-learn pytorch=1.0.0 torchvision pymatgen -c pytorch -c matsci
+conda create -n cgcnn python=3 scikit-learn pytorch torchvision pymatgen -c pytorch -c conda-forge
 ```
 
 *Note: this code is tested for PyTorch v1.0.0+ and is not compatible with versions below v0.4.0 due to some breaking changes.
@@ -188,6 +189,10 @@ Note that for classification, the predicted values in `test_results.csv` is a pr
 After predicting, you will get one file in `cgcnn` directory:
 
 - `test_results.csv`: stores the `ID`, target value, and predicted value for each crystal in test set. Here the target value is just any number that you set while defining the dataset in `id_prop.csv`, which is not important.
+
+## Data
+
+To reproduce our paper, you can download the corresponding datasets following the [instruction](data/material-data).
 
 ## Authors
 
