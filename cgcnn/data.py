@@ -281,9 +281,9 @@ class CIFData(Dataset):
     radius: float
         The cutoff radius for searching neighbors
     nn_object: pymatgen.analysis.local_env.NearNeighbors object 
-        A Pymatgen NN object to construct a StructureGraph
+        Instance of a Pymatgen NN object to construct a StructureGraph.
         Ensures only sites in radius are included. Set radius=None for
-        no standard usage of the Pymatgen local_env_strategy
+        standard usage of the Pymatgen local_env_strategy
     dmin: float
         The minimum distance for constructing GaussianDistance
     step: float
