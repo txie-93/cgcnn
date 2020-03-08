@@ -331,6 +331,8 @@ class CIFData(Dataset):
         nbr_fea_idx, nbr_fea = [], []
         if self.nn_object:
             graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
+            if self.radius is None:
+                self.radius = np.inf
             for i in range(len(crystal)):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
