@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import torch
 from pymatgen.core.structure import Structure
+from pymatgen.analysis.graphs import StructureGraph
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -279,6 +280,10 @@ class CIFData(Dataset):
         The maximum number of neighbors while constructing the crystal graph
     radius: float
         The cutoff radius for searching neighbors
+    nn_object: pymatgen.analysis.local_env.NearNeighbors object 
+        A Pymatgen NN object to construct a StructureGraph
+        Ensures only sites in radius are included. Set radius=None for
+        no standard usage of the Pymatgen local_env_strategy
     dmin: float
         The minimum distance for constructing GaussianDistance
     step: float
@@ -295,8 +300,8 @@ class CIFData(Dataset):
     target: torch.Tensor shape (1, )
     cif_id: str or int
     """
-    def __init__(self, root_dir, max_num_nbr=12, radius=8, dmin=0, step=0.2,
-                 random_seed=123):
+    def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_object=None,
+                 dmin=0, step=0.2,random_seed=123):
         self.root_dir = root_dir
         self.max_num_nbr, self.radius = max_num_nbr, radius
         assert os.path.exists(root_dir), 'root_dir does not exist!'
@@ -323,24 +328,32 @@ class CIFData(Dataset):
         atom_fea = np.vstack([self.ari.get_atom_fea(crystal[i].specie.number)
                               for i in range(len(crystal))])
         atom_fea = torch.Tensor(atom_fea)
-        all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
-        all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
         nbr_fea_idx, nbr_fea = [], []
-        for nbr in all_nbrs:
-            if len(nbr) < self.max_num_nbr:
-                warnings.warn('{} not find enough neighbors to build graph. '
-                              'If it happens frequently, consider increase '
-                              'radius.'.format(cif_id))
-                nbr_fea_idx.append(list(map(lambda x: x[2], nbr)) +
-                                   [0] * (self.max_num_nbr - len(nbr)))
-                nbr_fea.append(list(map(lambda x: x[1], nbr)) +
-                               [self.radius + 1.] * (self.max_num_nbr -
-                                                     len(nbr)))
-            else:
-                nbr_fea_idx.append(list(map(lambda x: x[2],
+        if self.nn_object:
+            graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
+            for i in range(len(crystal)):
+                nbr = graph.get_connected_sites(i)
+                nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
+                nbr_fea_idx.append([x.index for x in nbr][:self.max_num_nbr])
+                nbr_fea.append([x.dist for x in nbr][:self.max_num_nbr])
+        else:
+            all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
+            all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
+            for nbr in all_nbrs:
+                if len(nbr) < self.max_num_nbr:
+                    warnings.warn('{} not find enough neighbors to build graph. '
+                                  'If it happens frequently, consider increase '
+                                  'radius.'.format(cif_id))
+                    nbr_fea_idx.append(list(map(lambda x: x[2], nbr)) +
+                                       [0] * (self.max_num_nbr - len(nbr)))
+                    nbr_fea.append(list(map(lambda x: x[1], nbr)) +
+                                   [self.radius + 1.] * (self.max_num_nbr -
+                                                         len(nbr)))
+                else:
+                    nbr_fea_idx.append(list(map(lambda x: x[2],
+                                                nbr[:self.max_num_nbr])))
+                    nbr_fea.append(list(map(lambda x: x[1],
                                             nbr[:self.max_num_nbr])))
-                nbr_fea.append(list(map(lambda x: x[1],
-                                        nbr[:self.max_num_nbr])))
         nbr_fea_idx, nbr_fea = np.array(nbr_fea_idx), np.array(nbr_fea)
         nbr_fea = self.gdf.expand(nbr_fea)
         atom_fea = torch.Tensor(atom_fea)
