@@ -282,8 +282,8 @@ class CIFData(Dataset):
         The cutoff radius for searching neighbors
     nn_object: pymatgen.analysis.local_env.NearNeighbors object 
         Instance of a Pymatgen NN object to construct a StructureGraph.
-        Ensures only sites in radius are included. Set radius=None for
-        standard usage of the Pymatgen local_env_strategy
+        Ensures only sites in radius are included. Set radius=None and
+        max_num_nbr=None for standard usage of the Pymatgen local_env_strategy
     dmin: float
         The minimum distance for constructing GaussianDistance
     step: float
@@ -336,8 +336,12 @@ class CIFData(Dataset):
             for i in range(len(crystal)):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
-                nbr_fea_idx.append([x.index for x in nbr][:self.max_num_nbr])
-                nbr_fea.append([x.dist for x in nbr][:self.max_num_nbr])
+                if self.max_num_nbr is None:
+	                nbr_fea_idx.append([x.index for x in nbr])
+	                nbr_fea.append([x.dist for x in nbr])
+                else:
+	                nbr_fea_idx.append([x.index for x in nbr][:self.max_num_nbr])
+	                nbr_fea.append([x.dist for x in nbr][:self.max_num_nbr])
         else:
             all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
             all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
