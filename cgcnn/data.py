@@ -5,12 +5,13 @@ import functools
 import json
 import os
 import random
-import sys
 import warnings
 
 import numpy as np
 import torch
+from pymatgen.analysis import local_env
 from pymatgen.core.structure import Structure
+from pymatgen.analysis.graphs import StructureGraph
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 from torch.utils.data.sampler import SubsetRandomSampler
@@ -286,6 +287,9 @@ class CIFData(Dataset):
         The maximum number of neighbors while constructing the crystal graph
     radius: float
         The cutoff radius for searching neighbors
+    nn_object: pymatgen.analysis.local_env.NearNeighbors object 
+        Instance of a Pymatgen NN object to construct a StructureGraph.
+        Ensures only sites in radius are included.
     dmin: float
         The minimum distance for constructing GaussianDistance
     step: float
@@ -302,10 +306,10 @@ class CIFData(Dataset):
     target: torch.Tensor shape (1, )
     cif_id: str or int
     """
-    def __init__(self, root_dir, max_num_nbr=12, radius=8, dmin=0, step=0.2,
-                 random_seed=123):
+    def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_object=None,
+        dmin=0, step=0.2,random_seed=123):
         self.root_dir = root_dir
-        self.max_num_nbr, self.radius = max_num_nbr, radius
+        self.max_num_nbr, self.radius, self.nn_object = max_num_nbr, radius, nn_object
         assert os.path.exists(root_dir), 'root_dir does not exist!'
         id_prop_file = os.path.join(self.root_dir, 'id_prop.csv')
         assert os.path.exists(id_prop_file), 'id_prop.csv does not exist!'
@@ -331,27 +335,45 @@ class CIFData(Dataset):
         atom_fea = np.vstack([self.ari.get_atom_fea(crystal[i].specie.number)
                               for i in range(len(crystal))])
 
-        # neighbours
-        all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
-        all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
         self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
+        if self.nn_object:
+            graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
+            if self.radius is None:
+                self.radius = np.inf
+            for i in range(len(crystal)):
+                nbr = graph.get_connected_sites(i)
+                nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
+                if len(nbr) < self.max_num_nbr:
+                    warnings.warn('{} not find enough neighbors to build graph. '
+                                  'If it happens frequently, consider decreasing '
+                                  'max_num_nbr.'.format(cif_id))
+                    nbr_fea_idx.extend([x.index for x in nbr])
+                    nbr_fea.extend([x.dist for x in nbr])
+                else:
+                    nbr_fea_idx.extend([x.index for x in nbr][:self.max_num_nbr])
+                    nbr_fea.extend([x.dist for x in nbr][:self.max_num_nbr])
 
-        for i, nbr in enumerate(all_nbrs):
-            if len(nbr) < self.max_num_nbr:
-                warnings.warn('{} not find enough neighbors to build graph. '
-                              'If it happens frequently, consider increase '
-                              'radius.'.format(cif_id))
-                
-                nbr_fea_idx.extend(list(map(lambda x: x[2], nbr)))
-                nbr_fea.extend(list(map(lambda x: x[1], nbr)))
+                self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
+        else:
+            # neighbours
+            all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
+            all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
+            for i, nbr in enumerate(all_nbrs):
+                if len(nbr) < self.max_num_nbr:
+                    warnings.warn('{} not find enough neighbors to build graph. '
+                                  'If it happens frequently, consider increasing '
+                                  'radius.'.format(cif_id))
+                    
+                    nbr_fea_idx.extend(list(map(lambda x: x[2], nbr)))
+                    nbr_fea.extend(list(map(lambda x: x[1], nbr)))
 
-            else:
-                nbr_fea_idx.extend(list(map(lambda x: x[2],
+                else:
+                    nbr_fea_idx.extend(list(map(lambda x: x[2],
+                                                nbr[:self.max_num_nbr])))
+                    nbr_fea.extend(list(map(lambda x: x[1],
                                             nbr[:self.max_num_nbr])))
-                nbr_fea.extend(list(map(lambda x: x[1],
-                                        nbr[:self.max_num_nbr])))
 
-            self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
+                self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
 
         nbr_fea = np.array(nbr_fea)
         nbr_fea = self.gdf.expand(nbr_fea)
