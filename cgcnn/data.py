@@ -22,9 +22,7 @@ def get_train_val_test_loader(dataset, collate_fn=default_collate,
                               num_workers=1, pin_memory=False, **kwargs):
     """
     Utility function for dividing a dataset to train, val, test datasets.
-
     !!! The dataset needs to be shuffled before using the function !!!
-
     Parameters
     ----------
     dataset: torch.utils.data.Dataset
@@ -39,7 +37,6 @@ def get_train_val_test_loader(dataset, collate_fn=default_collate,
       data will be hidden.
     num_workers: int
     pin_memory: bool
-
     Returns
     -------
     train_loader: torch.utils.data.DataLoader
@@ -98,23 +95,18 @@ def collate_pool(dataset_list):
     """
     Collate a list of data and return a batch for predicting crystal
     properties.
-
     Parameters
     ----------
-
     dataset_list: list of tuples for each data point.
       (atom_fea, nbr_fea, nbr_fea_idx, target)
-
       atom_fea: torch.Tensor shape (n_i, atom_fea_len)
       nbr_fea: torch.Tensor shape (n_i, M, nbr_fea_len)
       nbr_fea_idx: torch.LongTensor shape (n_i, M)
       target: torch.Tensor shape (1, )
       cif_id: str or int
-
     Returns
     -------
     N = sum(n_i); N0 = sum(i)
-
     batch_atom_fea: torch.Tensor shape (N, orig_atom_fea_len)
       Atom features from atom type
     batch_nbr_fea: torch.Tensor shape (N, M, nbr_fea_len)
@@ -153,14 +145,12 @@ def collate_pool(dataset_list):
 class GaussianDistance(object):
     """
     Expands the distance by Gaussian basis.
-
     Unit: angstrom
     """
     def __init__(self, dmin, dmax, step, var=None):
         """
         Parameters
         ----------
-
         dmin: float
           Minimum interatomic distance
         dmax: float
@@ -177,14 +167,11 @@ class GaussianDistance(object):
 
     def expand(self, distances):
         """
-        Apply Gaussian disntance filter to a numpy distance array
-
+        Apply Gaussian distance filter to a numpy distance array
         Parameters
         ----------
-
         distance: np.array shape n-d array
           A distance matrix of any shape
-
         Returns
         -------
         expanded_distance: shape (n+1)-d array
@@ -198,7 +185,6 @@ class GaussianDistance(object):
 class AtomInitializer(object):
     """
     Base class for intializing the vector representation for atoms.
-
     !!! Use one AtomInitializer per dataset !!!
     """
     def __init__(self, atom_types):
@@ -230,10 +216,8 @@ class AtomCustomJSONInitializer(AtomInitializer):
     Initialize atom feature vectors using a JSON file, which is a python
     dictionary mapping from element number to a list representing the
     feature vector of the element.
-
     Parameters
     ----------
-
     elem_embedding_file: str
         The path to the .json file
     """
@@ -253,27 +237,21 @@ class CIFData(Dataset):
     The CIFData dataset is a wrapper for a dataset where the crystal structures
     are stored in the form of CIF files. The dataset should have the following
     directory structure:
-
     root_dir
     ├── id_prop.csv
     ├── atom_init.json
     ├── id0.cif
     ├── id1.cif
     ├── ...
-
     id_prop.csv: a CSV file with two columns. The first column recodes a
     unique ID for each crystal, and the second column recodes the value of
     target property.
-
     atom_init.json: a JSON file that stores the initialization vector for each
     element.
-
     ID.cif: a CIF file that recodes the crystal structure, where ID is the
     unique ID for the crystal.
-
     Parameters
     ----------
-
     root_dir: str
         The path to the root directory of the dataset
     max_num_nbr: int
@@ -290,10 +268,8 @@ class CIFData(Dataset):
         The step size for constructing GaussianDistance
     random_seed: int
         Random seed for shuffling the dataset
-
     Returns
     -------
-
     atom_fea: torch.Tensor shape (n_i, atom_fea_len)
     nbr_fea: torch.Tensor shape (n_i, M, nbr_fea_len)
     nbr_fea_idx: torch.LongTensor shape (n_i, M)
@@ -336,12 +312,15 @@ class CIFData(Dataset):
             for i in range(len(crystal)):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
-                if self.max_num_nbr is None:
-	                nbr_fea_idx.append([x.index for x in nbr])
-	                nbr_fea.append([x.dist for x in nbr])
+                if len(nbr) < self.max_num_nbr:
+                    warnings.warn('{} not find enough neighbors to build graph. '
+                                  'If it happens frequently, consider decreasing '
+                                  'max_num_nbr.'.format(cif_id))
+                    nbr_fea_idx.append([x.index for x in nbr]+[0]*(self.max_num_nbr - len(nbr)))
+                    nbr_fea.append([x.dist for x in nbr]+[self.radius + 1.]*(self.max_num_nbr - len(nbr)))
                 else:
-	                nbr_fea_idx.append([x.index for x in nbr][:self.max_num_nbr])
-	                nbr_fea.append([x.dist for x in nbr][:self.max_num_nbr])
+                    nbr_fea_idx.append([x.index for x in nbr][:self.max_num_nbr])
+                    nbr_fea.append([x.dist for x in nbr][:self.max_num_nbr])
         else:
             all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
             all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
