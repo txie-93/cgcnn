@@ -337,7 +337,38 @@ class CIFData(Dataset):
 
         self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
         if self.nn_object:
-            graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
+            if self.nn_object == 'minimumvirenn':
+                local_nn_obj = local_env.MinimumVIRENN()
+            elif self.nn_object == 'voronoinn':
+                local_nn_obj = local_env.VoronoiNN()
+            elif self.nn_object == 'jmolnn':
+                local_nn_obj = local_env.JmolNN()
+            elif self.nn_object == 'minimumdistancenn':
+                local_nn_obj = local_env.MinimumDistanceNN()
+            elif self.nn_object == 'minimumokeeffenn':
+                local_nn_obj = local_env.MinimumOKeeffeNN()
+            elif self.nn_object == 'brunnernn_real':
+                local_nn_obj = local_env.BrunnerNN_real()
+            elif self.nn_object == 'brunnernn_reciprocal':
+                local_nn_obj = local_env.BrunnerNN_reciprocal()
+            elif self.nn_object == 'brunnernn_relative':
+                local_nn_obj = local_env.BrunnerNN_relative()
+            elif self.nn_object == 'econnn':
+                local_nn_obj = local_env.EconNN()
+            elif self.nn_object == 'cutoffdictnn':
+                #requires a cutoff dictionary located in cgcnn/cut_off_dict.txt
+                local_nn_obj = local_env.CutOffDictNN(cut_off_dict='cut_off_dict.txt')
+            elif self.nn_object == 'critic2nn':
+                local_nn_obj = local_env.Critic2NN()
+            elif self.nn_object == 'openbabelnn':
+                local_nn_obj = local_env.OpenBabelNN()
+            elif self.nn_object == 'covalentbondnn':
+                local_nn_obj = local_env.CovalentBondNN()
+            elif self.nn_object == 'crystalnn':
+                local_nn_obj = local_env.CrystalNN()
+            else:
+                raise ValueError('Invalid NN algorithm specified')
+            graph = StructureGraph.with_local_env_strategy(crystal, local_nn_obj)
             if self.radius is None:
                 self.radius = np.inf
             for i in range(len(crystal)):
