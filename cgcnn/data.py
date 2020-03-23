@@ -321,6 +321,8 @@ class CIFData(Dataset):
         atom_init_file = os.path.join(self.root_dir, 'atom_init.json')
         assert os.path.exists(atom_init_file), 'atom_init.json does not exist!'
         self.ari = AtomCustomJSONInitializer(atom_init_file)
+        if self.radius is None:
+            self.radius = np.inf
         self.gdf = GaussianDistance(dmin=dmin, dmax=self.radius, step=step)
 
     def __len__(self):
@@ -369,8 +371,6 @@ class CIFData(Dataset):
             else:
                 raise ValueError('Invalid NN algorithm specified')
             graph = StructureGraph.with_local_env_strategy(crystal, local_nn_obj)
-            if self.radius is None:
-                self.radius = np.inf
             for i in range(len(crystal)):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
