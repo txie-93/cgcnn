@@ -265,7 +265,7 @@ class CIFData(Dataset):
         The maximum number of neighbors while constructing the crystal graph
     radius: float
         The cutoff radius for searching neighbors
-    nn_object: string
+    nn_method: string
         A pymatgen.analysis.local_env.NearNeighbors object used to construct
         a pymatgen.analysis.graphs.StructureGraph
     dmin: float
@@ -284,10 +284,10 @@ class CIFData(Dataset):
     target: torch.Tensor shape (1, )
     cif_id: str or int
     """
-    def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_object=None,
-        dmin=0, step=0.2, random_seed=123, verbose=True):
+    def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_method='CrystalNN',
+        dmin=0, step=0.2, random_seed=123, verbose=False):
         self.root_dir = root_dir
-        self.max_num_nbr, self.radius, self.nn_object, self.verbose = max_num_nbr, radius, nn_object, verbose
+        self.max_num_nbr, self.radius, self.nn_method, self.verbose = max_num_nbr, radius, nn_method, verbose
         assert os.path.exists(root_dir), 'root_dir does not exist!'
         id_prop_file = os.path.join(self.root_dir, 'id_prop.csv')
         assert os.path.exists(id_prop_file), 'id_prop.csv does not exist!'
@@ -302,6 +302,40 @@ class CIFData(Dataset):
         if self.radius is None:
             self.radius = np.inf
         self.gdf = GaussianDistance(dmin=dmin, dmax=self.radius, step=step)
+        if self.nn_method:
+            if self.nn_method.lower() == 'minimumvirenn':
+                self.nn_object = local_env.MinimumVIRENN()
+            elif self.nn_method.lower() == 'voronoinn':
+                self.nn_object = local_env.VoronoiNN()
+            elif self.nn_method.lower() == 'jmolnn':
+                self.nn_object = local_env.JmolNN()
+            elif self.nn_method.lower() == 'minimumdistancenn':
+                self.nn_object = local_env.MinimumDistanceNN()
+            elif self.nn_method.lower() == 'minimumokeeffenn':
+                self.nn_object = local_env.MinimumOKeeffeNN()
+            elif self.nn_method.lower() == 'brunnernn_real':
+                self.nn_object = local_env.BrunnerNN_real()
+            elif self.nn_method.lower() == 'brunnernn_reciprocal':
+                self.nn_object = local_env.BrunnerNN_reciprocal()
+            elif self.nn_method.lower() == 'brunnernn_relative':
+                self.nn_object = local_env.BrunnerNN_relative()
+            elif self.nn_method.lower() == 'econnn':
+                self.nn_object = local_env.EconNN()
+            elif self.nn_method.lower() == 'cutoffdictnn':
+                #requires a cutoff dictionary located in cgcnn/cut_off_dict.txt
+                self.nn_object = local_env.CutOffDictNN(cut_off_dict='cut_off_dict.txt')
+            elif self.nn_method.lower() == 'critic2nn':
+                self.nn_object = local_env.Critic2NN()
+            elif self.nn_method.lower() == 'openbabelnn':
+                self.nn_object = local_env.OpenBabelNN()
+            elif self.nn_method.lower() == 'covalentbondnn':
+                self.nn_object = local_env.CovalentBondNN()
+            elif self.nn_method.lower() == 'crystalnn':
+                self.nn_object = local_env.CrystalNN()
+            else:
+                raise ValueError('Invalid NN algorithm specified')
+        else:
+            self.nn_object = None
 
     def __len__(self):
         return len(self.id_prop_data)
@@ -317,38 +351,7 @@ class CIFData(Dataset):
 
         self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
         if self.nn_object:
-            if self.nn_object.lower() == 'minimumvirenn':
-                local_nn_obj = local_env.MinimumVIRENN()
-            elif self.nn_object.lower() == 'voronoinn':
-                local_nn_obj = local_env.VoronoiNN()
-            elif self.nn_object.lower() == 'jmolnn':
-                local_nn_obj = local_env.JmolNN()
-            elif self.nn_object.lower() == 'minimumdistancenn':
-                local_nn_obj = local_env.MinimumDistanceNN()
-            elif self.nn_object.lower() == 'minimumokeeffenn':
-                local_nn_obj = local_env.MinimumOKeeffeNN()
-            elif self.nn_object.lower() == 'brunnernn_real':
-                local_nn_obj = local_env.BrunnerNN_real()
-            elif self.nn_object.lower() == 'brunnernn_reciprocal':
-                local_nn_obj = local_env.BrunnerNN_reciprocal()
-            elif self.nn_object.lower() == 'brunnernn_relative':
-                local_nn_obj = local_env.BrunnerNN_relative()
-            elif self.nn_object.lower() == 'econnn':
-                local_nn_obj = local_env.EconNN()
-            elif self.nn_object.lower() == 'cutoffdictnn':
-                #requires a cutoff dictionary located in cgcnn/cut_off_dict.txt
-                local_nn_obj = local_env.CutOffDictNN(cut_off_dict='cut_off_dict.txt')
-            elif self.nn_object.lower() == 'critic2nn':
-                local_nn_obj = local_env.Critic2NN()
-            elif self.nn_object.lower() == 'openbabelnn':
-                local_nn_obj = local_env.OpenBabelNN()
-            elif self.nn_object.lower() == 'covalentbondnn':
-                local_nn_obj = local_env.CovalentBondNN()
-            elif self.nn_object.lower() == 'crystalnn':
-                local_nn_obj = local_env.CrystalNN()
-            else:
-                raise ValueError('Invalid NN algorithm specified')
-            graph = StructureGraph.with_local_env_strategy(crystal, local_nn_obj)
+            graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
             for i in range(len(crystal)):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
