@@ -315,7 +315,7 @@ class CIFData(Dataset):
         assert os.path.exists(id_prop_file), 'id_prop.csv does not exist!'
         with open(id_prop_file) as f:
             reader = csv.reader(f)
-            self.id_prop_data = [row for row in reader]
+            self.id_prop_data = [[x.strip().replace('\ufeff','') for x in row] for row in reader]
         random.seed(random_seed)
         random.shuffle(self.id_prop_data)
         atom_init_file = os.path.join(self.root_dir, 'atom_init.json')
@@ -337,34 +337,34 @@ class CIFData(Dataset):
 
         self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
         if self.nn_object:
-            if self.nn_object == 'minimumvirenn':
+            if self.nn_object.lower() == 'minimumvirenn':
                 local_nn_obj = local_env.MinimumVIRENN()
-            elif self.nn_object == 'voronoinn':
+            elif self.nn_object.lower() == 'voronoinn':
                 local_nn_obj = local_env.VoronoiNN()
-            elif self.nn_object == 'jmolnn':
+            elif self.nn_object.lower() == 'jmolnn':
                 local_nn_obj = local_env.JmolNN()
-            elif self.nn_object == 'minimumdistancenn':
+            elif self.nn_object.lower() == 'minimumdistancenn':
                 local_nn_obj = local_env.MinimumDistanceNN()
-            elif self.nn_object == 'minimumokeeffenn':
+            elif self.nn_object.lower() == 'minimumokeeffenn':
                 local_nn_obj = local_env.MinimumOKeeffeNN()
-            elif self.nn_object == 'brunnernn_real':
+            elif self.nn_object.lower() == 'brunnernn_real':
                 local_nn_obj = local_env.BrunnerNN_real()
-            elif self.nn_object == 'brunnernn_reciprocal':
+            elif self.nn_object.lower() == 'brunnernn_reciprocal':
                 local_nn_obj = local_env.BrunnerNN_reciprocal()
-            elif self.nn_object == 'brunnernn_relative':
+            elif self.nn_object.lower() == 'brunnernn_relative':
                 local_nn_obj = local_env.BrunnerNN_relative()
-            elif self.nn_object == 'econnn':
+            elif self.nn_object.lower() == 'econnn':
                 local_nn_obj = local_env.EconNN()
-            elif self.nn_object == 'cutoffdictnn':
+            elif self.nn_object.lower() == 'cutoffdictnn':
                 #requires a cutoff dictionary located in cgcnn/cut_off_dict.txt
                 local_nn_obj = local_env.CutOffDictNN(cut_off_dict='cut_off_dict.txt')
-            elif self.nn_object == 'critic2nn':
+            elif self.nn_object.lower() == 'critic2nn':
                 local_nn_obj = local_env.Critic2NN()
-            elif self.nn_object == 'openbabelnn':
+            elif self.nn_object.lower() == 'openbabelnn':
                 local_nn_obj = local_env.OpenBabelNN()
-            elif self.nn_object == 'covalentbondnn':
+            elif self.nn_object.lower() == 'covalentbondnn':
                 local_nn_obj = local_env.CovalentBondNN()
-            elif self.nn_object == 'crystalnn':
+            elif self.nn_object.lower() == 'crystalnn':
                 local_nn_obj = local_env.CrystalNN()
             else:
                 raise ValueError('Invalid NN algorithm specified')
@@ -375,9 +375,7 @@ class CIFData(Dataset):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
                 if len(nbr) < self.max_num_nbr:
-                    warnings.warn('{} not find enough neighbors to build graph. '
-                                  'If it happens frequently, consider decreasing '
-                                  'max_num_nbr.'.format(cif_id))
+                    warnings.warn('{} not found less neighbors than max_num_nbr'.format(cif_id))
                     nbr_fea_idx.extend([x.index for x in nbr])
                     nbr_fea.extend([x.dist for x in nbr])
                 else:
