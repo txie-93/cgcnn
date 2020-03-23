@@ -375,7 +375,7 @@ class CIFData(Dataset):
                 nbr = graph.get_connected_sites(i)
                 nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
                 if len(nbr) < self.max_num_nbr:
-                    warnings.warn('{} not found less neighbors than max_num_nbr'.format(cif_id))
+                    warnings.warn('{} found less neighbors than max_num_nbr'.format(cif_id))
                     nbr_fea_idx.extend([x.index for x in nbr])
                     nbr_fea.extend([x.dist for x in nbr])
                 else:
