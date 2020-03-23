@@ -287,9 +287,9 @@ class CIFData(Dataset):
         The maximum number of neighbors while constructing the crystal graph
     radius: float
         The cutoff radius for searching neighbors
-    nn_object: pymatgen.analysis.local_env.NearNeighbors object 
-        Instance of a Pymatgen NN object to construct a StructureGraph.
-        Ensures only sites in radius are included.
+    nn_object: string
+        A pymatgen.analysis.local_env.NearNeighbors object used to construct
+        a pymatgen.analysis.graphs.StructureGraph
     dmin: float
         The minimum distance for constructing GaussianDistance
     step: float
