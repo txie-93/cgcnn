@@ -284,8 +284,8 @@ class CIFData(Dataset):
     target: torch.Tensor shape (1, )
     cif_id: str or int
     """
-    def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_method='CrystalNN',
-        dmin=0, step=0.2, random_seed=123, verbose=False):
+    def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_method=None,
+        dmin=0, step=0.2, random_seed=123, verbose=True):
         self.root_dir = root_dir
         self.max_num_nbr, self.radius, self.nn_method, self.verbose = max_num_nbr, radius, nn_method, verbose
         assert os.path.exists(root_dir), 'root_dir does not exist!'
