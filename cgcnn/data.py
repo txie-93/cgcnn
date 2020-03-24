@@ -174,7 +174,7 @@ class GaussianDistance(object):
 
     def expand(self, distances):
         """
-        Apply Gaussian disntance filter to a numpy distance array
+        Apply Gaussian distance filter to a numpy distance array
         Parameters
         ----------
         distance: np.array shape n-d array
@@ -352,40 +352,33 @@ class CIFData(Dataset):
         self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
         if self.nn_object:
             graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
+            all_nbrs = []
+            dist_idx = -1
             for i in range(len(crystal)):
                 nbr = graph.get_connected_sites(i)
-                nbr = sorted([nbrs for nbrs in nbr if nbrs.dist <= self.radius],key=lambda x: x.dist)
-                if len(nbr) < self.max_num_nbr:
-                    if self.verbose:
-                        warnings.warn('{} found less neighbors than max_num_nbr'.format(cif_id))
-                    nbr_fea_idx.extend([x.index for x in nbr])
-                    nbr_fea.extend([x.dist for x in nbr])
-                else:
-                    nbr_fea_idx.extend([x.index for x in nbr][:self.max_num_nbr])
-                    nbr_fea.extend([x.dist for x in nbr][:self.max_num_nbr])
-
-                self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
+                nbr = [nbrs for nbrs in nbr if nbrs[dist_idx] <= self.radius]
+                all_nbrs.append(nbr)
         else:
-            # neighbours
+            dist_idx = 1
             all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
-            all_nbrs = [sorted(nbrs, key=lambda x: x[1]) for nbrs in all_nbrs]
-            for i, nbr in enumerate(all_nbrs):
-                if len(nbr) < self.max_num_nbr:
-                    if self.verbose:
-                        warnings.warn('{} not find enough neighbors to build graph. '
-                                      'If it happens frequently, consider increasing '
-                                      'radius.'.format(cif_id))
-                    
-                    nbr_fea_idx.extend(list(map(lambda x: x[2], nbr)))
-                    nbr_fea.extend(list(map(lambda x: x[1], nbr)))
+            all_nbrs = [sorted(nbrs, key=lambda x: x[dist_idx]) for nbrs in all_nbrs]
+        for i, nbr in enumerate(all_nbrs):
+            if len(nbr) < self.max_num_nbr:
+                if self.verbose:
+                    warnings.warn('{} not find enough neighbors to build graph. '
+                                  'If it happens frequently, consider increasing '
+                                  'radius or decreasing max_num_nbr.'.format(cif_id))
+                
+                nbr_fea_idx.extend(list(map(lambda x: x[2], nbr)))
+                nbr_fea.extend(list(map(lambda x: x[dist_idx], nbr)))
 
-                else:
-                    nbr_fea_idx.extend(list(map(lambda x: x[2],
-                                                nbr[:self.max_num_nbr])))
-                    nbr_fea.extend(list(map(lambda x: x[1],
+            else:
+                nbr_fea_idx.extend(list(map(lambda x: x[2],
                                             nbr[:self.max_num_nbr])))
+                nbr_fea.extend(list(map(lambda x: x[dist_idx],
+                                        nbr[:self.max_num_nbr])))
 
-                self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
+            self_fea_idx.extend([i]*min(len(nbr), self.max_num_nbr))
 
         nbr_fea = np.array(nbr_fea)
         nbr_fea = self.gdf.expand(nbr_fea)
