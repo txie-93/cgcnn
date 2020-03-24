@@ -107,7 +107,11 @@ def main():
         val_size=args.val_size,
         test_size=args.test_size,
         return_test=True)
-
+    
+    # make output folder if needed
+    if not os.path.exists('output'):
+        os.mkdir('output')
+    
     # obtain target value normalizer
     if args.task == 'classification':
         normalizer = Normalizer(torch.zeros(2))
