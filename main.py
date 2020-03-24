@@ -386,14 +386,14 @@ def validate(val_loader, model, criterion, normalizer, test=False):
 
         if i % args.print_freq == 0:
             if args.task == 'regression':
-                print('Test: [{0}/{1}]\t'
+                print('Validation: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
                     i, len(val_loader), batch_time=batch_time, loss=losses,
                     mae_errors=mae_errors))
             else:
-                print('Test: [{0}/{1}]\t'
+                print('Validation: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Accu {accu.val:.3f} ({accu.avg:.3f})\t'
