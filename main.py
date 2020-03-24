@@ -286,7 +286,7 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                       'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                    epoch, i, len(train_loader), batch_time=batch_time,
+                    epoch, i+1, len(train_loader), batch_time=batch_time,
                     data_time=data_time, loss=losses, mae_errors=mae_errors)
                 )
             else:
@@ -299,7 +299,7 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                    epoch, i, len(train_loader), batch_time=batch_time,
+                    epoch, i+1, len(train_loader), batch_time=batch_time,
                     data_time=data_time, loss=losses, accu=accuracies,
                     prec=precisions, recall=recalls, f1=fscores,
                     auc=auc_scores)
@@ -394,7 +394,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    i+1, len(val_loader), batch_time=batch_time, loss=losses,
                     mae_errors=mae_errors))
             else:
                 print('Validation: [{0}/{1}]\t'
@@ -405,7 +405,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                    i, len(val_loader), batch_time=batch_time, loss=losses,
+                    i+1, len(val_loader), batch_time=batch_time, loss=losses,
                     accu=accuracies, prec=precisions, recall=recalls,
                     f1=fscores, auc=auc_scores))
 
