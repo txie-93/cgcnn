@@ -58,7 +58,7 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 ```bash
 conda create -n cgcnn python=3
 source activate cgcnn
-conda install pytorch torchvision cudatoolkit=10.1 -c pytorch (edited) 
+conda install pytorch torchvision cudatoolkit=10.1 -c pytorch 
 pip install torch-scatter==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
 conda install scikit-learn
 pip install pymatgen
