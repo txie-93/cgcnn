@@ -93,3 +93,7 @@ Local
 
 # .DS_Store
 .DS_Store
+
+data/atom_init_rev.json
+
+data/readme.txt

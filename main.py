@@ -5,6 +5,7 @@ import sys
 import time
 import warnings
 from random import sample
+import csv
 
 import numpy as np
 import torch
@@ -223,10 +224,20 @@ def main():
         }, is_best)
 
     # test best model
-    print('---------Evaluate Model on Test Set---------------')
     best_checkpoint = torch.load(os.path.join('output','model_best.pth.tar'))
     model.load_state_dict(best_checkpoint['state_dict'])
-    validate(test_loader, model, criterion, normalizer, test=True)
+
+    print('---------Evaluate Best Model on Train Set---------------')
+    validate(train_loader, model, criterion, normalizer, test=True,
+        csv_name='train_results.csv')
+
+    print('---------Evaluate Best Model on Val Set---------------')
+    validate(val_loader, model, criterion, normalizer, test=True,
+        csv_name='val_results.csv')
+
+    print('---------Evaluate Best Model on Test Set---------------')
+    validate(test_loader, model, criterion, normalizer, test=True,
+        csv_name='test_results.csv')
 
 
 def train(train_loader, model, criterion, optimizer, epoch, normalizer):
@@ -325,7 +336,9 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                 )
 
 
-def validate(val_loader, model, criterion, normalizer, test=False):
+def validate(val_loader, model, criterion, normalizer, test=False,
+    csv_name = 'test_results.csv'):
+
     batch_time = AverageMeter()
     losses = AverageMeter()
     if args.task == 'regression':
@@ -352,13 +365,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
 
         else:
             with torch.no_grad():
-                # input_var = (Variable(input_[0]),
-                #              Variable(input_[1]),
-                #              input_[2],
-                #              input_[3],
-                #              input_[4])
                 input_var = input_
-
 
         if args.task == 'regression':
             target_normed = normalizer.norm(target)
@@ -435,8 +442,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
 
     if test:
         star_label = '**'
-        import csv
-        with open(os.path.join('output','test_results.csv'), 'w') as f:
+        with open(os.path.join('output',csv_name), 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):

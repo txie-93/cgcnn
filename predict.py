@@ -8,9 +8,8 @@ import torch
 import torch.nn as nn
 from sklearn import metrics
 from torch.autograd import Variable
-from torch.utils.data import DataLoader
 
-from cgcnn.data import CIFData
+from cgcnn.data import CIFData, get_train_val_test_loader
 from cgcnn.data import collate_pool
 from cgcnn.model import CrystalGraphConvNet
 
@@ -54,10 +53,21 @@ def main():
         radius=model_args.radius,nn_method=model_args.nn_method,
         save_torch=args.save_torch,clean_torch=args.clean_torch)
     collate_fn = collate_pool
-    test_loader = DataLoader(dataset, batch_size=model_args.batch_size, shuffle=True,
-                             num_workers=args.workers, collate_fn=collate_fn,
-                             pin_memory=args.cuda)
 
+    train_loader, val_loader, test_loader = get_train_val_test_loader(
+        dataset=dataset,
+        collate_fn=collate_fn,
+        batch_size=model_args.batch_size,
+        train_ratio=model_args.train_ratio,
+        num_workers=args.workers,
+        val_ratio=model_args.val_ratio,
+        test_ratio=model_args.test_ratio,
+        pin_memory=args.cuda,
+        train_size=model_args.train_size,
+        val_size=model_args.val_size,
+        test_size=model_args.test_size,
+        return_test=True)
+    
     # build model
     structures, _, _ = dataset[0]
     orig_atom_fea_len = structures[0].shape[-1]
@@ -93,10 +103,16 @@ def main():
     else:
         print("=> no model found at '{}'".format(args.modelpath))
 
-    validate(test_loader, model, criterion, normalizer, test=True)
+    validate(train_loader, model, criterion, normalizer, test=True,
+        csv_name='train_results.csv')
+    validate(val_loader, model, criterion, normalizer, test=True,
+        csv_name='val_results.csv')
+    validate(test_loader, model, criterion, normalizer, test=True,
+        csv_name='test_results.csv')
 
 
-def validate(val_loader, model, criterion, normalizer, test=False):
+def validate(val_loader, model, criterion, normalizer, test=False,
+    csv_name='test_results.csv'):
     batch_time = AverageMeter()
     losses = AverageMeter()
     if model_args.task == 'regression':
@@ -192,7 +208,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     if test:
         star_label = '**'
         import csv
-        with open(os.path.join('output','test_results.csv'), 'w') as f:
+        with open(os.path.join('output',csv_name), 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):
