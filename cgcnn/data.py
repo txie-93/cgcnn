@@ -275,8 +275,6 @@ class CIFData(Dataset):
         The step size for constructing GaussianDistance
     disable_save_torch: bool
         Don't save torch files containing CIFData crystal grpahs
-    clean_torch: bool
-        If torch files containing CIFData crystal graph results should be cleaned
     random_seed: int
         Random seed for shuffling the dataset
     Returns
@@ -288,10 +286,10 @@ class CIFData(Dataset):
     cif_id: str or int
     """
     def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_method=None,
-        dmin=0, step=0.2, disable_save_torch=False, clean_torch=True, random_seed=123):
+        dmin=0, step=0.2, disable_save_torch=False, random_seed=123):
         self.root_dir = root_dir
         self.max_num_nbr, self.radius, self.nn_method = max_num_nbr, radius, nn_method
-        self.disable_save_torch, self.clean_torch = disable_save_torch, clean_torch
+        self.disable_save_torch = disable_save_torch
         assert os.path.exists(root_dir), 'root_dir does not exist!'
         id_prop_file = os.path.join(self.root_dir, 'id_prop.csv')
         assert os.path.exists(id_prop_file), 'id_prop.csv does not exist!'

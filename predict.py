@@ -54,7 +54,7 @@ def main():
     # load data
     dataset = CIFData(args.cifpath,max_num_nbr=model_args.max_num_nbr,
         radius=model_args.radius,nn_method=model_args.nn_method,
-        disable_save_torch=args.disable_save_torch,clean_torch=args.clean_torch)
+        disable_save_torch=args.disable_save_torch)
     collate_fn = collate_pool
 
     if args.train_val_test:
