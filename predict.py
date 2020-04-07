@@ -26,6 +26,10 @@ parser.add_argument('--save-torch', action='store_true',
                     help='Save CIF PyTorch data as .json files')
 parser.add_argument('--clean-torch', action='store_true',
                     help='Clean CIF PyTorch data .json files')
+parser.add_argument('--save-train', action='store_true',
+                    help='Return training results')
+parser.add_argument('--save-val', action='store_true',
+                    help='Return validation results')
 
 args = parser.parse_args(sys.argv[1:])
 if os.path.isfile(args.modelpath):
@@ -103,10 +107,15 @@ def main():
     else:
         print("=> no model found at '{}'".format(args.modelpath))
 
-    validate(train_loader, model, criterion, normalizer, test=True,
-        csv_name='train_results.csv')
-    validate(val_loader, model, criterion, normalizer, test=True,
-        csv_name='val_results.csv')
+    if args.save_train:
+        print('---------Evaluate Model on Train Set---------------')
+        validate(train_loader, model, criterion, normalizer, test=True,
+            csv_name='train_results.csv')
+    if args.save_val:
+        print('---------Evaluate Model on Val Set---------------')
+        validate(val_loader, model, criterion, normalizer, test=True,
+            csv_name='val_results.csv')
+    print('---------Evaluate Model on Test Set---------------')
     validate(test_loader, model, criterion, normalizer, test=True,
         csv_name='test_results.csv')
 

@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 import torch
 import torch.nn as nn
 from torch_scatter import scatter_mean, scatter_add
