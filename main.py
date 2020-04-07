@@ -130,6 +130,16 @@ def main():
     # make output folder if needed
     if not os.path.exists('output'):
         os.mkdir('output')
+
+    # make and clean torch files if needed
+    torch_data_path = os.path.join(args.data_options[0],'cifdata')
+    if args.clean_torch and os.path.exists(torch_data_path):
+        shutil.rmtree(torch_data_path)
+    if os.path.exists(torch_data_path):
+        if not args.clean_torch: 
+            warnings.warn('Found torch .json files at '+torch_data_path+'. Will read in .jsons as-available')
+    else:
+        os.mkdir(torch_data_path)
     
     # obtain target value normalizer
     if args.task == 'classification':

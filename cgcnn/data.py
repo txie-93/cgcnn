@@ -6,7 +6,6 @@ import json
 import os
 import random
 import warnings
-from shutil import rmtree
 import pickle
 
 import numpy as np
@@ -306,10 +305,6 @@ class CIFData(Dataset):
         self.ari = AtomCustomJSONInitializer(atom_init_file)
         self.gdf = GaussianDistance(dmin=dmin, dmax=self.radius, step=step)
         self.torch_data_path = os.path.join(self.root_dir,'cifdata')
-        if self.clean_torch and os.path.exists(self.torch_data_path):
-            rmtree(self.torch_data_path)
-        if not os.path.exists(self.torch_data_path):
-            os.mkdir(self.torch_data_path)
         if self.nn_method:
             if self.nn_method.lower() == 'minimumvirenn':
                 self.nn_object = local_env.MinimumVIRENN()
