@@ -110,7 +110,8 @@ def main():
     # load data
     dataset = CIFData(*args.data_options,max_num_nbr=args.max_num_nbr,
         radius=args.radius,nn_method=args.nn_method,
-        save_torch=args.save_torch,clean_torch=args.clean_torch)    collate_fn = collate_pool
+        save_torch=args.save_torch,clean_torch=args.clean_torch)
+    collate_fn = collate_pool
     train_loader, val_loader, test_loader = get_train_val_test_loader(
         dataset=dataset,
         collate_fn=collate_fn,

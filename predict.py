@@ -14,7 +14,7 @@ from cgcnn.data import CIFData
 from cgcnn.data import collate_pool
 from cgcnn.model import CrystalGraphConvNet
 
-parser = argparse.ArgumentParser(description='Crystal gated neural networks')
+parser = argparse.ArgumentParser(description='Crystal Graph Convolutional Neural Networks')
 parser.add_argument('modelpath', help='path to the trained model.')
 parser.add_argument('cifpath', help='path to the directory of CIF files.')
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
