@@ -1,6 +1,5 @@
 import argparse
 import os
-import shutil
 import sys
 import time
 
@@ -18,14 +17,16 @@ from cgcnn.model import CrystalGraphConvNet
 parser = argparse.ArgumentParser(description='Crystal gated neural networks')
 parser.add_argument('modelpath', help='path to the trained model.')
 parser.add_argument('cifpath', help='path to the directory of CIF files.')
-parser.add_argument('-b', '--batch-size', default=256, type=int,
-                    metavar='N', help='mini-batch size (default: 256)')
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
                     help='number of data loading workers (default: 0)')
 parser.add_argument('--disable-cuda', action='store_true',
                     help='Disable CUDA')
 parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
+parser.add_argument('--save-torch', action='store_true',
+                    help='Save CIF PyTorch data as .json files')
+parser.add_argument('--clean-torch', action='store_true',
+                    help='Clean CIF PyTorch data .json files')
 
 args = parser.parse_args(sys.argv[1:])
 if os.path.isfile(args.modelpath):
@@ -49,9 +50,11 @@ def main():
     global args, model_args, best_mae_error
 
     # load data
-    dataset = CIFData(args.cifpath)
+    dataset = CIFData(args.cifpath,max_num_nbr=model_args.max_num_nbr,
+        radius=model_args.radius,nn_method=model_args.nn_method,
+        save_torch=args.save_torch,clean_torch=args.clean_torch)
     collate_fn = collate_pool
-    test_loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True,
+    test_loader = DataLoader(dataset, batch_size=model_args.batch_size, shuffle=True,
                              num_workers=args.workers, collate_fn=collate_fn,
                              pin_memory=args.cuda)
 
@@ -74,15 +77,6 @@ def main():
         criterion = nn.NLLLoss()
     else:
         criterion = nn.MSELoss()
-    # if args.optim == 'SGD':
-    #     optimizer = optim.SGD(model.parameters(), args.lr,
-    #                           momentum=args.momentum,
-    #                           weight_decay=args.weight_decay)
-    # elif args.optim == 'Adam':
-    #     optimizer = optim.Adam(model.parameters(), args.lr,
-    #                            weight_decay=args.weight_decay)
-    # else:
-    #     raise NameError('Only SGD or Adam is allowed as --optim')
 
     normalizer = Normalizer(torch.zeros(3))
 

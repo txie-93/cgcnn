@@ -9,7 +9,7 @@ class ConvLayer(nn.Module):
     """
     Convolutional operation on graphs
     """
-    def __init__(self, atom_fea_len, nbr_fea_len):
+    def __init__(self, atom_fea_len, nbr_fea_len, enable_tanh=False):
         """
         Initialize ConvLayer.
 
@@ -27,10 +27,14 @@ class ConvLayer(nn.Module):
         self.fc_full = nn.Linear(2*self.atom_fea_len+self.nbr_fea_len,
                                  2*self.atom_fea_len)
         self.sigmoid = nn.Sigmoid()
-        self.softplus1 = nn.Softplus()
+        if enable_tanh:
+            self.act1 = nn.Tanh()
+            self.act2 = nn.Tanh()
+        else:
+            self.act1 = nn.Softplus()
+            self.act2 = nn.Softplus()
         self.bn1 = nn.BatchNorm1d(2*self.atom_fea_len)
         self.bn2 = nn.BatchNorm1d(self.atom_fea_len)
-        self.softplus2 = nn.Softplus()
         self.pooling = SumPooling()
 
     def forward(self, atom_in_fea, nbr_fea, self_fea_idx, nbr_fea_idx):
@@ -68,14 +72,14 @@ class ConvLayer(nn.Module):
 
         filter_fea, core_fea = total_fea.chunk(2, dim=1)
         filter_fea = self.sigmoid(filter_fea)
-        core_fea = self.softplus1(core_fea)
+        core_fea = self.act1(core_fea)
 
         # take the elementwise product of the filter and core
         nbr_msg = filter_fea * core_fea
         nbr_sumed = self.pooling(nbr_msg, self_fea_idx)
 
         nbr_sumed = self.bn2(nbr_sumed)
-        out = self.softplus2(atom_in_fea + nbr_sumed)
+        out = self.act2(atom_in_fea + nbr_sumed)
 
         return out
 
@@ -87,7 +91,7 @@ class CrystalGraphConvNet(nn.Module):
     """
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
                  atom_fea_len=64, n_conv=3, h_fea_len=128, n_h=1,
-                 classification=False):
+                 classification=False, enable_tanh=False):
         """
         Initialize CrystalGraphConvNet.
 
@@ -106,12 +110,16 @@ class CrystalGraphConvNet(nn.Module):
           Number of hidden features after pooling
         n_h: int
           Number of hidden layers after pooling
+        classification: bool
+          If classification should be done instead of regression
+        enable_tanh: bool
+          Use tanh instead of softplus
         """
         super(CrystalGraphConvNet, self).__init__()
         self.classification = classification
         self.embedding = nn.Linear(orig_atom_fea_len, atom_fea_len)
         self.convs = nn.ModuleList([ConvLayer(atom_fea_len=atom_fea_len,
-                                    nbr_fea_len=nbr_fea_len)
+                                    nbr_fea_len=nbr_fea_len,enable_tanh=enable_tanh)
                                     for _ in range(n_conv)])
         self.pooling = MeanPooling()
         self.conv_to_fc = nn.Linear(atom_fea_len, h_fea_len)

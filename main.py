@@ -49,11 +49,13 @@ parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--resume', default='', type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
+
 train_group = parser.add_mutually_exclusive_group()
 train_group.add_argument('--train-ratio', default=None, type=float, metavar='N',
                     help='number of training data to be loaded (default none)')
 train_group.add_argument('--train-size', default=None, type=int, metavar='N',
                          help='number of training data to be loaded (default none)')
+
 valid_group = parser.add_mutually_exclusive_group()
 valid_group.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
                     help='percentage of validation data to be loaded (default '
@@ -61,6 +63,7 @@ valid_group.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
 valid_group.add_argument('--val-size', default=None, type=int, metavar='N',
                          help='number of validation data to be loaded (default '
                               '1000)')
+
 test_group = parser.add_mutually_exclusive_group()
 test_group.add_argument('--test-ratio', default=0.1, type=float, metavar='N',
                     help='percentage of test data to be loaded (default 0.1)')
@@ -78,6 +81,19 @@ parser.add_argument('--n-conv', default=3, type=int, metavar='N',
 parser.add_argument('--n-h', default=1, type=int, metavar='N',
                     help='number of hidden layers after pooling')
 
+parser.add_argument('--max-num-nbr', default=12, type=int, metavar='N',
+                    help='Maximum number of neighbors')
+parser.add_argument('--radius', default=8, type=int, metavar='N',
+                    help='Radial distance to search for neighbors')
+parser.add_argument('--nn-method', default='', type=str, metavar='N',
+                    help='NN algorithm to search for neighbors (defaults to cutoff)')
+parser.add_argument('--save-torch', action='store_true',
+                    help='Save CIF PyTorch data as .json files')
+parser.add_argument('--clean-torch', action='store_true',
+                    help='Clean CIF PyTorch data .json files')
+parser.add_argument('--enable-tanh', action='store_true',
+                    help='Use tanh instead of softplus')
+
 args = parser.parse_args(sys.argv[1:])
 
 args.cuda = not args.disable_cuda and torch.cuda.is_available()
@@ -92,8 +108,9 @@ def main():
     global args, best_mae_error
 
     # load data
-    dataset = CIFData(*args.data_options)
-    collate_fn = collate_pool
+    dataset = CIFData(*args.data_options,max_num_nbr=args.max_num_nbr,
+        radius=args.radius,nn_method=args.nn_method,
+        save_torch=args.save_torch,clean_torch=args.clean_torch)    collate_fn = collate_pool
     train_loader, val_loader, test_loader = get_train_val_test_loader(
         dataset=dataset,
         collate_fn=collate_fn,
@@ -137,7 +154,8 @@ def main():
                                 h_fea_len=args.h_fea_len,
                                 n_h=args.n_h,
                                 classification=True if args.task ==
-                                                       'classification' else False)
+                                                       'classification' else False,
+                                enable_tanh=args.enable_tanh)
     if args.cuda:
         model.cuda()
 
