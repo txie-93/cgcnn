@@ -8,6 +8,7 @@ import torch
 import torch.nn as nn
 from sklearn import metrics
 from torch.autograd import Variable
+from torch.utils.data import DataLoader
 
 from cgcnn.data import CIFData, get_train_val_test_loader
 from cgcnn.data import collate_pool
@@ -26,10 +27,8 @@ parser.add_argument('--save-torch', action='store_true',
                     help='Save CIF PyTorch data as .json files')
 parser.add_argument('--clean-torch', action='store_true',
                     help='Clean CIF PyTorch data .json files')
-parser.add_argument('--save-train', action='store_true',
-                    help='Return training results')
-parser.add_argument('--save-val', action='store_true',
-                    help='Return validation results')
+parser.add_argument('--train-val-test', action='store_true',
+                    help='Return training/validation/testing results')
 
 args = parser.parse_args(sys.argv[1:])
 if os.path.isfile(args.modelpath):
@@ -58,19 +57,24 @@ def main():
         save_torch=args.save_torch,clean_torch=args.clean_torch)
     collate_fn = collate_pool
 
-    train_loader, val_loader, test_loader = get_train_val_test_loader(
-        dataset=dataset,
-        collate_fn=collate_fn,
-        batch_size=model_args.batch_size,
-        train_ratio=model_args.train_ratio,
-        num_workers=args.workers,
-        val_ratio=model_args.val_ratio,
-        test_ratio=model_args.test_ratio,
-        pin_memory=args.cuda,
-        train_size=model_args.train_size,
-        val_size=model_args.val_size,
-        test_size=model_args.test_size,
-        return_test=True)
+    if args.train_val_test:
+        train_loader, val_loader, test_loader = get_train_val_test_loader(
+            dataset=dataset,
+            collate_fn=collate_fn,
+            batch_size=model_args.batch_size,
+            train_ratio=model_args.train_ratio,
+            num_workers=args.workers,
+            val_ratio=model_args.val_ratio,
+            test_ratio=model_args.test_ratio,
+            pin_memory=args.cuda,
+            train_size=model_args.train_size,
+            val_size=model_args.val_size,
+            test_size=model_args.test_size,
+            return_test=True)
+    else:
+        test_loader = DataLoader(dataset, batch_size=model_args.batch_size, shuffle=True,
+                                 num_workers=args.workers, collate_fn=collate_fn,
+                                 pin_memory=args.cuda)
     
     # build model
     structures, _, _ = dataset[0]
@@ -107,11 +111,10 @@ def main():
     else:
         print("=> no model found at '{}'".format(args.modelpath))
 
-    if args.save_train:
+    if args.train_val_test:
         print('---------Evaluate Model on Train Set---------------')
         validate(train_loader, model, criterion, normalizer, test=True,
             csv_name='train_results.csv')
-    if args.save_val:
         print('---------Evaluate Model on Val Set---------------')
         validate(val_loader, model, criterion, normalizer, test=True,
             csv_name='val_results.csv')
