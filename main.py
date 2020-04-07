@@ -205,7 +205,7 @@ def main():
 
     # test best model
     print('---------Evaluate Model on Test Set---------------')
-    best_checkpoint = torch.load('output/model_best.pth.tar')
+    best_checkpoint = torch.load(os.path.join('output','model_best.pth.tar'))
     model.load_state_dict(best_checkpoint['state_dict'])
     validate(test_loader, model, criterion, normalizer, test=True)
 
@@ -417,7 +417,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     if test:
         star_label = '**'
         import csv
-        with open('output/test_results.csv', 'w') as f:
+        with open(os.path.join('output','test_results.csv'), 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):
@@ -506,10 +506,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def save_checkpoint(state, is_best, filename='output/checkpoint.pth.tar'):
+def save_checkpoint(state, is_best, filename=os.path.join('output','checkpoint.pth.tar')):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, 'output/model_best.pth.tar')
+        shutil.copyfile(filename, os.path.join('output','model_best.pth.tar'))
 
 
 def adjust_learning_rate(optimizer, epoch, k):
