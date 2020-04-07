@@ -2,6 +2,8 @@ import argparse
 import os
 import sys
 import time
+import shutil
+import warnings
 
 import numpy as np
 import torch
@@ -75,7 +77,17 @@ def main():
         test_loader = DataLoader(dataset, batch_size=model_args.batch_size, shuffle=True,
                                  num_workers=args.workers, collate_fn=collate_fn,
                                  pin_memory=args.cuda)
-    
+ 
+    # make and clean torch files if needed
+    torch_data_path = os.path.join(args.cifpath,'cifdata')
+    if args.clean_torch and os.path.exists(torch_data_path):
+        shutil.rmtree(torch_data_path)
+    if os.path.exists(torch_data_path):
+        if not args.clean_torch: 
+            warnings.warn('Found torch .json files at '+torch_data_path+'. Will read in .jsons as-available')
+    else:
+        os.mkdir(torch_data_path)
+
     # build model
     structures, _, _ = dataset[0]
     orig_atom_fea_len = structures[0].shape[-1]
