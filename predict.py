@@ -118,10 +118,13 @@ def main():
         print('---------Evaluate Model on Val Set---------------')
         validate(val_loader, model, criterion, normalizer, test=True,
             csv_name='val_results.csv')
-    print('---------Evaluate Model on Test Set---------------')
-    validate(test_loader, model, criterion, normalizer, test=True,
-        csv_name='test_results.csv')
-
+        print('---------Evaluate Model on Test Set---------------')
+        validate(test_loader, model, criterion, normalizer, test=True,
+            csv_name='test_results.csv')
+    else:
+        print('---------Evaluate Model on Dataset---------------')
+        validate(test_loader, model, criterion, normalizer, test=True,
+            csv_name='predictions.csv')
 
 def validate(val_loader, model, criterion, normalizer, test=False,
     csv_name='test_results.csv'):
