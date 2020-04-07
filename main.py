@@ -88,8 +88,8 @@ parser.add_argument('--radius', default=8, type=int, metavar='N',
                     help='Radial distance to search for neighbors')
 parser.add_argument('--nn-method', default='', type=str, metavar='N',
                     help='NN algorithm to search for neighbors (defaults to cutoff)')
-parser.add_argument('--save-torch', action='store_true',
-                    help='Save CIF PyTorch data as .json files')
+parser.add_argument('--disable-save-torch', action='store_true',
+                    help='Do not save CIF PyTorch data as .json files')
 parser.add_argument('--clean-torch', action='store_true',
                     help='Clean CIF PyTorch data .json files')
 parser.add_argument('--enable-tanh', action='store_true',
@@ -111,7 +111,7 @@ def main():
     # load data
     dataset = CIFData(*args.data_options,max_num_nbr=args.max_num_nbr,
         radius=args.radius,nn_method=args.nn_method,
-        save_torch=args.save_torch,clean_torch=args.clean_torch)
+        disable_save_torch=args.disable_save_torch,clean_torch=args.clean_torch)
     collate_fn = collate_pool
     train_loader, val_loader, test_loader = get_train_val_test_loader(
         dataset=dataset,
