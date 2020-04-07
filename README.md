@@ -48,20 +48,21 @@ Please cite the following work if you want to use CGCNN.
 
 This package requires:
 
-- [PyTorch](http://pytorch.org)
-- [scikit-learn](http://scikit-learn.org/stable/)
-- [pymatgen](http://pymatgen.org)
-- [torch-scatter](https://github.com/rusty1s/pytorch_scatter)
+- [PyTorch](http://pytorch.org) (tested on v.1.4.0)
+- [PyTorch Scatter](https://github.com/rusty1s/pytorch_scatter)
+- [scikit-learn](http://scikit-learn.org/stable/) (tested on v.0.22.1)
+- [pymatgen](http://pymatgen.org) (tested on v.2020.3.13)
 
-If you are new to Python, the easiest way of installing the prerequisites is via [conda](https://conda.io/docs/index.html). After installing [conda](http://conda.pydata.org/), run the following command to create a new [environment](https://conda.io/docs/user-guide/tasks/manage-environments.html) named `cgcnn` and install all prerequisites:
+If you are new to Python, the easiest way of installing the prerequisites is via [conda](https://conda.io/docs/index.html) and `pip`. After installing [conda](http://conda.pydata.org/), run the following command to create a new [environment](https://conda.io/docs/user-guide/tasks/manage-environments.html) named `cgcnn` and install all prerequisites:
 
 ```bash
-conda upgrade conda
-conda create -n cgcnn python=3 scikit-learn pytorch torchvision pymatgen -c pytorch -c conda-forge
+conda create -n cgcnn python=3
+source activate cgcnn
+conda install pytorch torchvision cudatoolkit=10.1 -c pytorch (edited) 
+pip install torch-scatter==latest+cu101 -f https://pytorch-geometric.com/whl/torch-1.4.0.html
+conda install scikit-learn
+pip install pymatgen
 ```
-
-*Note: this code is tested for PyTorch v1.0.0+ and is not compatible with versions below v0.4.0 due to some breaking changes.
-
 This creates a conda environment for running CGCNN. Before using CGCNN, activate the environment by:
 
 ```bash
