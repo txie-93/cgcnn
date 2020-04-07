@@ -86,7 +86,8 @@ def main():
                                 h_fea_len=model_args.h_fea_len,
                                 n_h=model_args.n_h,
                                 classification=True if model_args.task ==
-                                'classification' else False)
+                                'classification' else False,
+                                enable_tanh=model_args.enable_tanh)
     if args.cuda:
         model.cuda()
 
