@@ -24,7 +24,7 @@ parser.add_argument('--disable-cuda', action='store_true',
 parser.add_argument('--print-freq', '-p', default=10, type=int,
                     metavar='N', help='print frequency (default: 10)')
 parser.add_argument('--disable-save-torch', action='store_true',
-                    help='Save CIF PyTorch data as .json files')
+                    help='Do not save CIF PyTorch data as .json files')
 parser.add_argument('--clean-torch', action='store_true',
                     help='Clean CIF PyTorch data .json files')
 parser.add_argument('--train-val-test', action='store_true',
