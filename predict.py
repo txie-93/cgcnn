@@ -122,18 +122,12 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     model.eval()
 
     end = time.time()
-    for i, (input, target, batch_cif_ids) in enumerate(val_loader):
+    for i, (input_, target, batch_cif_ids) in enumerate(val_loader):
         with torch.no_grad():
             if args.cuda:
-                input_var = (Variable(input[0].cuda(non_blocking=True)),
-                             Variable(input[1].cuda(non_blocking=True)),
-                             input[2].cuda(non_blocking=True),
-                             [crys_idx.cuda(non_blocking=True) for crys_idx in input[3]])
+                input_var = (tensor.to("cuda") for tensor in input_)
             else:
-                input_var = (Variable(input[0]),
-                             Variable(input[1]),
-                             input[2],
-                             input[3])
+                input_var = input_
         if model_args.task == 'regression':
             target_normed = normalizer.norm(target)
         else:
@@ -204,7 +198,7 @@ def validate(val_loader, model, criterion, normalizer, test=False):
     if test:
         star_label = '**'
         import csv
-        with open('output/test_results.csv', 'w') as f:
+        with open(os.path.join('output','test_results.csv'), 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):
