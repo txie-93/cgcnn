@@ -274,11 +274,6 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
         if args.cuda:
             input_var = (tensor.to("cuda") for tensor in input_)
         else:
-            # input_var = (Variable(input_[0]),
-            #                 Variable(input_[1]),
-            #                 input_[2],
-            #                 input_[3],
-            #                 input_[4])
             input_var = input_
 
         # normalize target

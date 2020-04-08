@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 import csv
 import functools
 import json
@@ -274,7 +272,7 @@ class CIFData(Dataset):
     step: float
         The step size for constructing GaussianDistance
     disable_save_torch: bool
-        Don't save torch files containing CIFData crystal grpahs
+        Don't save torch files containing CIFData crystal graphs
     random_seed: int
         Random seed for shuffling the dataset
     Returns
