@@ -137,7 +137,7 @@ def main():
         shutil.rmtree(torch_data_path)
     if os.path.exists(torch_data_path):
         if not args.clean_torch: 
-            warnings.warn('Found torch .json files at '+torch_data_path+'. Will read in .jsons as-available')
+            warnings.warn('Found cifdata folder at '+torch_data_path+'. Will read in .jsons as-available')
     else:
         os.mkdir(torch_data_path)
     
