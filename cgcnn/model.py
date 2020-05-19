@@ -7,6 +7,7 @@ class ConvLayer(nn.Module):
     """
     Convolutional operation on graphs
     """
+
     def __init__(self, atom_fea_len, nbr_fea_len, enable_tanh=False):
         """
         Initialize ConvLayer.
@@ -61,7 +62,7 @@ class ConvLayer(nn.Module):
         """
         # convolution
         atom_nbr_fea = atom_in_fea[nbr_fea_idx, :]
-        atom_self_fea = atom_in_fea[self_fea_idx,:]
+        atom_self_fea = atom_in_fea[self_fea_idx, :]
 
         total_fea = torch.cat([atom_self_fea, atom_nbr_fea, nbr_fea], dim=1)
 
@@ -87,6 +88,7 @@ class CrystalGraphConvNet(nn.Module):
     Create a crystal graph convolutional neural network for predicting total
     material properties.
     """
+
     def __init__(self, orig_atom_fea_len, nbr_fea_len,
                  atom_fea_len=64, n_conv=3, h_fea_len=128, n_h=1,
                  classification=False, enable_tanh=False):
@@ -117,7 +119,7 @@ class CrystalGraphConvNet(nn.Module):
         self.classification = classification
         self.embedding = nn.Linear(orig_atom_fea_len, atom_fea_len)
         self.convs = nn.ModuleList([ConvLayer(atom_fea_len=atom_fea_len,
-                                    nbr_fea_len=nbr_fea_len,enable_tanh=enable_tanh)
+                                              nbr_fea_len=nbr_fea_len, enable_tanh=enable_tanh)
                                     for _ in range(n_conv)])
         self.pooling = MeanPooling()
         self.conv_to_fc = nn.Linear(atom_fea_len, h_fea_len)
@@ -131,7 +133,7 @@ class CrystalGraphConvNet(nn.Module):
             self.fc_out = nn.Linear(h_fea_len, 2)
         else:
             self.fc_out = nn.Linear(h_fea_len, 1)
-        
+
         if self.classification:
             self.logsoftmax = nn.LogSoftmax(dim=1)
             self.dropout = nn.Dropout()
@@ -164,7 +166,7 @@ class CrystalGraphConvNet(nn.Module):
 
         """
         atom_fea = self.embedding(atom_fea)
-        
+
         for conv_func in self.convs:
             atom_fea = conv_func(atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx)
 
@@ -186,15 +188,17 @@ class CrystalGraphConvNet(nn.Module):
             out = self.logsoftmax(out)
         return out
 
+
 class MeanPooling(nn.Module):
     """
     mean pooling
     """
+
     def __init__(self):
         super(MeanPooling, self).__init__()
 
     def forward(self, x, index):
-                  
+
         mean = scatter_mean(x, index, dim=0)
 
         return mean
@@ -202,15 +206,17 @@ class MeanPooling(nn.Module):
     def __repr__(self):
         return '{}'.format(self.__class__.__name__)
 
+
 class SumPooling(nn.Module):
     """
     mean pooling
     """
+
     def __init__(self):
         super(SumPooling, self).__init__()
 
     def forward(self, x, index):
-        
+
         mean = scatter_add(x, index, dim=0)
 
         return mean

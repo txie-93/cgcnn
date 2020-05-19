@@ -128,7 +128,7 @@ def collate_pool(dataset_list):
             in enumerate(dataset_list):
 
         n_i = atom_fea.shape[0]  # number of atoms for this crystal
-        
+
         batch_atom_fea.append(atom_fea)
         batch_nbr_fea.append(nbr_fea)
         batch_self_fea_idx.append(self_fea_idx+base_idx)
@@ -138,7 +138,7 @@ def collate_pool(dataset_list):
         batch_target.append(target)
         batch_cif_ids.append(cif_id)
         base_idx += n_i
-    
+
     return (torch.cat(batch_atom_fea, dim=0),
             torch.cat(batch_nbr_fea, dim=0),
             torch.cat(batch_self_fea_idx, dim=0),
@@ -153,6 +153,7 @@ class GaussianDistance(object):
     Expands the distance by Gaussian basis.
     Unit: angstrom
     """
+
     def __init__(self, dmin, dmax, step, var=None):
         """
         Parameters
@@ -193,6 +194,7 @@ class AtomInitializer(object):
     Base class for intializing the vector representation for atoms.
     !!! Use one AtomInitializer per dataset !!!
     """
+
     def __init__(self, atom_types):
         self.atom_types = set(atom_types)
         self._embedding = {}
@@ -227,6 +229,7 @@ class AtomCustomJSONInitializer(AtomInitializer):
     elem_embedding_file: str
         The path to the .json file
     """
+
     def __init__(self, elem_embedding_file):
         with open(elem_embedding_file) as f:
             elem_embedding = json.load(f)
@@ -283,8 +286,9 @@ class CIFData(Dataset):
     target: torch.Tensor shape (1, )
     cif_id: str or int
     """
+
     def __init__(self, root_dir, max_num_nbr=12, radius=8, nn_method=None,
-        dmin=0, step=0.2, disable_save_torch=False, random_seed=123):
+                 dmin=0, step=0.2, disable_save_torch=False, random_seed=123):
         self.root_dir = root_dir
         self.max_num_nbr, self.radius, self.nn_method = max_num_nbr, radius, nn_method
         self.disable_save_torch = disable_save_torch
@@ -293,14 +297,15 @@ class CIFData(Dataset):
         assert os.path.exists(id_prop_file), 'id_prop.csv does not exist!'
         with open(id_prop_file) as f:
             reader = csv.reader(f)
-            self.id_prop_data = [[x.strip().replace('\ufeff','') for x in row] for row in reader]
+            self.id_prop_data = [[x.strip().replace('\ufeff', '')
+                                  for x in row] for row in reader]
         random.seed(random_seed)
         random.shuffle(self.id_prop_data)
         atom_init_file = os.path.join(self.root_dir, 'atom_init.json')
         assert os.path.exists(atom_init_file), 'atom_init.json does not exist!'
         self.ari = AtomCustomJSONInitializer(atom_init_file)
         self.gdf = GaussianDistance(dmin=dmin, dmax=self.radius, step=step)
-        self.torch_data_path = os.path.join(self.root_dir,'cifdata')
+        self.torch_data_path = os.path.join(self.root_dir, 'cifdata')
         if self.nn_method:
             if self.nn_method.lower() == 'minimumvirenn':
                 self.nn_object = local_env.MinimumVIRENN()
@@ -321,8 +326,9 @@ class CIFData(Dataset):
             elif self.nn_method.lower() == 'econnn':
                 self.nn_object = local_env.EconNN()
             elif self.nn_method.lower() == 'cutoffdictnn':
-                #requires a cutoff dictionary located in cgcnn/cut_off_dict.txt
-                self.nn_object = local_env.CutOffDictNN(cut_off_dict='cut_off_dict.txt')
+                # requires a cutoff dictionary located in cgcnn/cut_off_dict.txt
+                self.nn_object = local_env.CutOffDictNN(
+                    cut_off_dict='cut_off_dict.txt')
             elif self.nn_method.lower() == 'critic2nn':
                 self.nn_object = local_env.Critic2NN()
             elif self.nn_method.lower() == 'openbabelnn':
@@ -342,12 +348,12 @@ class CIFData(Dataset):
     @functools.lru_cache(maxsize=None)  # Cache loaded structures
     def __getitem__(self, idx):
         cif_id, target = self.id_prop_data[idx]
-        cif_id = cif_id.replace('ï»¿','')
+        cif_id = cif_id.replace('ï»¿', '')
 
         target = torch.Tensor([float(target)])
 
-        if os.path.exists(os.path.join(self.torch_data_path,cif_id+'.pkl')):
-            with open(os.path.join(self.torch_data_path,cif_id+'.pkl'),'rb') as f:
+        if os.path.exists(os.path.join(self.torch_data_path, cif_id+'.pkl')):
+            with open(os.path.join(self.torch_data_path, cif_id+'.pkl'), 'rb') as f:
                 pkl_data = pickle.load(f)
             atom_fea = pkl_data[0]
             nbr_fea = pkl_data[1]
@@ -355,14 +361,16 @@ class CIFData(Dataset):
             nbr_fea_idx = pkl_data[3]
 
         else:
-            crystal = Structure.from_file(os.path.join(self.root_dir, cif_id+'.cif'))
+            crystal = Structure.from_file(
+                os.path.join(self.root_dir, cif_id+'.cif'))
             # atom features
             atom_fea = np.vstack([self.ari.get_atom_fea(crystal[i].specie.number)
                                   for i in range(len(crystal))])
 
             self_fea_idx, nbr_fea_idx, nbr_fea = [], [], []
             if self.nn_object:
-                graph = StructureGraph.with_local_env_strategy(crystal, self.nn_object)
+                graph = StructureGraph.with_local_env_strategy(
+                    crystal, self.nn_object)
                 all_nbrs = []
                 dist_idx = -1
                 for i in range(len(crystal)):
@@ -371,14 +379,16 @@ class CIFData(Dataset):
                     all_nbrs.append(nbr)
             else:
                 dist_idx = 1
-                all_nbrs = crystal.get_all_neighbors(self.radius, include_index=True)
-                all_nbrs = [sorted(nbrs, key=lambda x: x[dist_idx]) for nbrs in all_nbrs]
+                all_nbrs = crystal.get_all_neighbors(
+                    self.radius, include_index=True)
+                all_nbrs = [sorted(nbrs, key=lambda x: x[dist_idx])
+                            for nbrs in all_nbrs]
             for i, nbr in enumerate(all_nbrs):
                 if len(nbr) < self.max_num_nbr:
                     warnings.warn('{} does not have enough neighbors to build graph. '
                                   'If it happens frequently, consider increasing '
                                   'radius or decreasing max_num_nbr.'.format(cif_id))
-                    
+
                     nbr_fea_idx.extend(list(map(lambda x: x[2], nbr)))
                     nbr_fea.extend(list(map(lambda x: x[dist_idx], nbr)))
 
@@ -399,7 +409,8 @@ class CIFData(Dataset):
             nbr_fea_idx = torch.LongTensor(nbr_fea_idx)
 
             if not self.disable_save_torch:
-                with open(os.path.join(self.torch_data_path,cif_id+'.pkl'),'wb') as f:
-                    pickle.dump((atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx), f)
+                with open(os.path.join(self.torch_data_path, cif_id+'.pkl'), 'wb') as f:
+                    pickle.dump(
+                        (atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx), f)
 
         return (atom_fea, nbr_fea, self_fea_idx, nbr_fea_idx), target, cif_id

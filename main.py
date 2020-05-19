@@ -19,13 +19,14 @@ from cgcnn.data import CIFData
 from cgcnn.data import collate_pool, get_train_val_test_loader
 from cgcnn.model import CrystalGraphConvNet
 
-parser = argparse.ArgumentParser(description='Crystal Graph Convolutional Neural Networks')
+parser = argparse.ArgumentParser(
+    description='Crystal Graph Convolutional Neural Networks')
 parser.add_argument('data_options', metavar='OPTIONS', nargs='+',
                     help='dataset options, started with the path to root dir, '
                          'then other options')
 parser.add_argument('--task', choices=['regression', 'classification'],
                     default='regression', help='complete a regression or '
-                                                   'classification task (default: regression)')
+                    'classification task (default: regression)')
 parser.add_argument('--disable-cuda', action='store_true',
                     help='Disable CUDA')
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
@@ -53,13 +54,13 @@ parser.add_argument('--resume', default='', type=str, metavar='PATH',
 
 train_group = parser.add_mutually_exclusive_group()
 train_group.add_argument('--train-ratio', default=None, type=float, metavar='N',
-                    help='number of training data to be loaded (default none)')
+                         help='number of training data to be loaded (default none)')
 train_group.add_argument('--train-size', default=None, type=int, metavar='N',
                          help='number of training data to be loaded (default none)')
 
 valid_group = parser.add_mutually_exclusive_group()
 valid_group.add_argument('--val-ratio', default=0.1, type=float, metavar='N',
-                    help='percentage of validation data to be loaded (default '
+                         help='percentage of validation data to be loaded (default '
                          '0.1)')
 valid_group.add_argument('--val-size', default=None, type=int, metavar='N',
                          help='number of validation data to be loaded (default '
@@ -67,7 +68,7 @@ valid_group.add_argument('--val-size', default=None, type=int, metavar='N',
 
 test_group = parser.add_mutually_exclusive_group()
 test_group.add_argument('--test-ratio', default=0.1, type=float, metavar='N',
-                    help='percentage of test data to be loaded (default 0.1)')
+                        help='percentage of test data to be loaded (default 0.1)')
 test_group.add_argument('--test-size', default=None, type=int, metavar='N',
                         help='number of test data to be loaded (default 1000)')
 
@@ -109,9 +110,9 @@ def main():
     global args, best_mae_error
 
     # load data
-    dataset = CIFData(*args.data_options,max_num_nbr=args.max_num_nbr,
-        radius=args.radius,nn_method=args.nn_method,
-        disable_save_torch=args.disable_save_torch)
+    dataset = CIFData(*args.data_options, max_num_nbr=args.max_num_nbr,
+                      radius=args.radius, nn_method=args.nn_method,
+                      disable_save_torch=args.disable_save_torch)
     collate_fn = collate_pool
     train_loader, val_loader, test_loader = get_train_val_test_loader(
         dataset=dataset,
@@ -126,21 +127,56 @@ def main():
         val_size=args.val_size,
         test_size=args.test_size,
         return_test=True)
-    
+
+    # Make sure >1 class is present
+    if args.task == 'classification':
+        total_train = 0
+        total_val = 0
+        total_test = 0
+
+        for i, (_, target, _) in enumerate(train_loader):
+            for target_i in target.squeeze():
+                total_train += target_i
+        if bool(total_train == 0):
+            raise ValueError('All 0s in train')
+        elif bool(total_train == 1):
+            raise ValueError('All 1s in train')
+
+        for i, (_, target, _) in enumerate(val_loader):
+            if len(target) == 1:
+                raise ValueError('Only single entry in val')
+            for target_i in target.squeeze():
+                total_val += target_i
+        if bool(total_val == 0):
+            raise ValueError('All 0s in val')
+        elif bool(total_val == 1):
+            raise ValueError('All 1s in val')
+
+        for i, (_, target, _) in enumerate(test_loader):
+            if len(target) == 1:
+                raise ValueError('Only single entry in test')
+            for target_i in target.squeeze():
+                total_test += target_i
+        if bool(total_test == 0):
+            raise ValueError('All 0s in test')
+        elif bool(total_test == 1):
+            raise ValueError('All 1s in test')
+
     # make output folder if needed
     if not os.path.exists('output'):
         os.mkdir('output')
 
     # make and clean torch files if needed
-    torch_data_path = os.path.join(args.data_options[0],'cifdata')
+    torch_data_path = os.path.join(args.data_options[0], 'cifdata')
     if args.clean_torch and os.path.exists(torch_data_path):
         shutil.rmtree(torch_data_path)
     if os.path.exists(torch_data_path):
-        if not args.clean_torch: 
-            warnings.warn('Found cifdata folder at '+torch_data_path+'. Will read in .jsons as-available')
+        if not args.clean_torch:
+            warnings.warn('Found cifdata folder at ' +
+                          torch_data_path+'. Will read in .jsons as-available')
     else:
         os.mkdir(torch_data_path)
-    
+
     # obtain target value normalizer
     if args.task == 'classification':
         normalizer = Normalizer(torch.zeros(2))
@@ -166,7 +202,7 @@ def main():
                                 h_fea_len=args.h_fea_len,
                                 n_h=args.n_h,
                                 classification=True if args.task ==
-                                                       'classification' else False,
+                                'classification' else False,
                                 enable_tanh=args.enable_tanh)
     if args.cuda:
         model.cuda()
@@ -234,20 +270,20 @@ def main():
         }, is_best)
 
     # test best model
-    best_checkpoint = torch.load(os.path.join('output','model_best.pth.tar'))
+    best_checkpoint = torch.load(os.path.join('output', 'model_best.pth.tar'))
     model.load_state_dict(best_checkpoint['state_dict'])
 
     print('---------Evaluate Best Model on Train Set---------------')
     validate(train_loader, model, criterion, normalizer, test=True,
-        csv_name='train_results.csv')
+             csv_name='train_results.csv')
 
     print('---------Evaluate Best Model on Val Set---------------')
     validate(val_loader, model, criterion, normalizer, test=True,
-        csv_name='val_results.csv')
+             csv_name='val_results.csv')
 
     print('---------Evaluate Best Model on Test Set---------------')
     validate(test_loader, model, criterion, normalizer, test=True,
-        csv_name='test_results.csv')
+             csv_name='test_results.csv')
 
 
 def train(train_loader, model, criterion, optimizer, epoch, normalizer):
@@ -321,9 +357,9 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                       'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                    epoch+1, i+1, len(train_loader), batch_time=batch_time,
-                    data_time=data_time, loss=losses, mae_errors=mae_errors)
-                )
+                          epoch+1, i+1, len(train_loader), batch_time=batch_time,
+                          data_time=data_time, loss=losses, mae_errors=mae_errors)
+                      )
             else:
                 print('Epoch: [{0}][{1}/{2}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -334,15 +370,15 @@ def train(train_loader, model, criterion, optimizer, epoch, normalizer):
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                    epoch+1, i+1, len(train_loader), batch_time=batch_time,
-                    data_time=data_time, loss=losses, accu=accuracies,
-                    prec=precisions, recall=recalls, f1=fscores,
-                    auc=auc_scores)
-                )
+                          epoch+1, i+1, len(train_loader), batch_time=batch_time,
+                          data_time=data_time, loss=losses, accu=accuracies,
+                          prec=precisions, recall=recalls, f1=fscores,
+                          auc=auc_scores)
+                      )
 
 
 def validate(val_loader, model, criterion, normalizer, test=False,
-    csv_name = 'test_results.csv'):
+             csv_name='test_results.csv'):
 
     batch_time = AverageMeter()
     losses = AverageMeter()
@@ -423,15 +459,15 @@ def validate(val_loader, model, criterion, normalizer, test=False,
             print_name = 'Test'
         else:
             print_name = 'Validation'
-        
+
         if i % args.print_freq == 0:
             if args.task == 'regression':
                 print(print_name+': [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                    i+1, len(val_loader), batch_time=batch_time, loss=losses,
-                    mae_errors=mae_errors))
+                          i+1, len(val_loader), batch_time=batch_time, loss=losses,
+                          mae_errors=mae_errors))
             else:
                 print(print_name+': [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -441,13 +477,13 @@ def validate(val_loader, model, criterion, normalizer, test=False,
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                    i+1, len(val_loader), batch_time=batch_time, loss=losses,
-                    accu=accuracies, prec=precisions, recall=recalls,
-                    f1=fscores, auc=auc_scores))
+                          i+1, len(val_loader), batch_time=batch_time, loss=losses,
+                          accu=accuracies, prec=precisions, recall=recalls,
+                          f1=fscores, auc=auc_scores))
 
     if test:
         star_label = '**'
-        with open(os.path.join('output',csv_name), 'w') as f:
+        with open(os.path.join('output', csv_name), 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):
@@ -536,10 +572,10 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-def save_checkpoint(state, is_best, filename=os.path.join('output','checkpoint.pth.tar')):
+def save_checkpoint(state, is_best, filename=os.path.join('output', 'checkpoint.pth.tar')):
     torch.save(state, filename)
     if is_best:
-        shutil.copyfile(filename, os.path.join('output','model_best.pth.tar'))
+        shutil.copyfile(filename, os.path.join('output', 'model_best.pth.tar'))
 
 
 def adjust_learning_rate(optimizer, epoch, k):

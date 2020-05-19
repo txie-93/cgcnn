@@ -16,7 +16,8 @@ from cgcnn.data import CIFData, get_train_val_test_loader
 from cgcnn.data import collate_pool
 from cgcnn.model import CrystalGraphConvNet
 
-parser = argparse.ArgumentParser(description='Crystal Graph Convolutional Neural Networks')
+parser = argparse.ArgumentParser(
+    description='Crystal Graph Convolutional Neural Networks')
 parser.add_argument('modelpath', help='path to the trained model.')
 parser.add_argument('cifpath', help='path to the directory of CIF files.')
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
@@ -54,9 +55,9 @@ def main():
     global args, model_args, best_mae_error
 
     # load data
-    dataset = CIFData(args.cifpath,max_num_nbr=model_args.max_num_nbr,
-        radius=model_args.radius,nn_method=model_args.nn_method,
-        disable_save_torch=args.disable_save_torch)
+    dataset = CIFData(args.cifpath, max_num_nbr=model_args.max_num_nbr,
+                      radius=model_args.radius, nn_method=model_args.nn_method,
+                      disable_save_torch=args.disable_save_torch)
     collate_fn = collate_pool
 
     if args.train_val_test:
@@ -77,14 +78,15 @@ def main():
         test_loader = DataLoader(dataset, batch_size=model_args.batch_size, shuffle=True,
                                  num_workers=args.workers, collate_fn=collate_fn,
                                  pin_memory=args.cuda)
- 
+
     # make and clean torch files if needed
-    torch_data_path = os.path.join(args.cifpath,'cifdata')
+    torch_data_path = os.path.join(args.cifpath, 'cifdata')
     if args.clean_torch and os.path.exists(torch_data_path):
         shutil.rmtree(torch_data_path)
     if os.path.exists(torch_data_path):
-        if not args.clean_torch: 
-            warnings.warn('Found torch .json files at '+torch_data_path+'. Will read in .jsons as-available')
+        if not args.clean_torch:
+            warnings.warn('Found torch .json files at ' +
+                          torch_data_path+'. Will read in .jsons as-available')
     else:
         os.mkdir(torch_data_path)
 
@@ -127,20 +129,21 @@ def main():
     if args.train_val_test:
         print('---------Evaluate Model on Train Set---------------')
         validate(train_loader, model, criterion, normalizer, test=True,
-            csv_name='train_results.csv')
+                 csv_name='train_results.csv')
         print('---------Evaluate Model on Val Set---------------')
         validate(val_loader, model, criterion, normalizer, test=True,
-            csv_name='val_results.csv')
+                 csv_name='val_results.csv')
         print('---------Evaluate Model on Test Set---------------')
         validate(test_loader, model, criterion, normalizer, test=True,
-            csv_name='test_results.csv')
+                 csv_name='test_results.csv')
     else:
         print('---------Evaluate Model on Dataset---------------')
         validate(test_loader, model, criterion, normalizer, test=True,
-            csv_name='predictions.csv')
+                 csv_name='predictions.csv')
+
 
 def validate(val_loader, model, criterion, normalizer, test=False,
-    csv_name='test_results.csv'):
+             csv_name='test_results.csv'):
     batch_time = AverageMeter()
     losses = AverageMeter()
     if model_args.task == 'regression':
@@ -218,8 +221,8 @@ def validate(val_loader, model, criterion, normalizer, test=False,
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'MAE {mae_errors.val:.3f} ({mae_errors.avg:.3f})'.format(
-                       i+1, len(val_loader), batch_time=batch_time, loss=losses,
-                       mae_errors=mae_errors))
+                          i+1, len(val_loader), batch_time=batch_time, loss=losses,
+                          mae_errors=mae_errors))
             else:
                 print('Test: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
@@ -229,14 +232,14 @@ def validate(val_loader, model, criterion, normalizer, test=False,
                       'Recall {recall.val:.3f} ({recall.avg:.3f})\t'
                       'F1 {f1.val:.3f} ({f1.avg:.3f})\t'
                       'AUC {auc.val:.3f} ({auc.avg:.3f})'.format(
-                       i+1, len(val_loader), batch_time=batch_time, loss=losses,
-                       accu=accuracies, prec=precisions, recall=recalls,
-                       f1=fscores, auc=auc_scores))
+                          i+1, len(val_loader), batch_time=batch_time, loss=losses,
+                          accu=accuracies, prec=precisions, recall=recalls,
+                          f1=fscores, auc=auc_scores))
 
     if test:
         star_label = '**'
         import csv
-        with open(os.path.join('output',csv_name), 'w') as f:
+        with open(os.path.join('output', csv_name), 'w') as f:
             writer = csv.writer(f)
             for cif_id, target, pred in zip(test_cif_ids, test_targets,
                                             test_preds):
@@ -255,6 +258,7 @@ def validate(val_loader, model, criterion, normalizer, test=False,
 
 class Normalizer(object):
     """Normalize a Tensor and restore it later. """
+
     def __init__(self, tensor):
         """tensor is taken as a sample to calculate the mean and std"""
         self.mean = torch.mean(tensor)
@@ -305,6 +309,7 @@ def class_eval(prediction, target):
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
