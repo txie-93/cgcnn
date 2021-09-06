@@ -50,12 +50,14 @@ def get_train_val_test_loader(dataset, collate_fn=default_collate,
         return_test=True.
     """
     total_size = len(dataset)
-    if train_ratio is None:
-        assert val_ratio + test_ratio < 1
-        train_ratio = 1 - val_ratio - test_ratio
-        print('[Warning] train_ratio is None, using all training data.')
-    else:
-        assert train_ratio + val_ratio + test_ratio <= 1
+    if kwargs['train_size'] is None:
+        if train_ratio is None:
+            assert val_ratio + test_ratio < 1
+            train_ratio = 1 - val_ratio - test_ratio
+            print(f'[Warning] train_ratio is None, using 1 - val_ratio - '
+                  f'test_ratio = {train_ratio} as training data.')
+        else:
+            assert train_ratio + val_ratio + test_ratio <= 1
     indices = list(range(total_size))
     if kwargs['train_size']:
         train_size = kwargs['train_size']
