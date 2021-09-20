@@ -1,0 +1,4 @@
+include LICENSE *.txt
+recursive-include cgcnn *
+recursive-include data *
+recursive-include pre-trained *
